@@ -1,0 +1,158 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="头文件\源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件\源文件\cxdec">
+      <UniqueIdentifier>{858b55c3-653a-4121-be22-e46c02462777}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="error.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="types.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="xp3.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="xp3filter_decode.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="cxdec\cxdec.h">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>头文件\源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="xp3.cpp">
+      <Filter>头文件\源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="xp3filter_decode.cpp">
+      <Filter>头文件\源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\11eyes_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\anioka_cxdec_callback.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\beniten_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\colorfulcure_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\ConcertoNote_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\EXE_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\FairChild_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\FairChildTrial_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\fanta_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\FHA_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\haruiro_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\kinomino_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\koisakura_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\kurenai_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\lovebattle_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\lovelaby_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\mogla_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\natukana_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\natukanaTrial_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\nidaime_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\nidaimeTrial_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\ojo2.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\ojyo_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\ruitomo_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\ruitomoTrial_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\sakurasaki_cxdec_callback.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\silverblue_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\tenshin_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\tenshinTrial_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\towa_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\sukisuki_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\oreaka_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+    <ClCompile Include="cxdec\siguan_cxdec.cpp">
+      <Filter>头文件\源文件\cxdec</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="main.rc">
+      <Filter>资源文件</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>
