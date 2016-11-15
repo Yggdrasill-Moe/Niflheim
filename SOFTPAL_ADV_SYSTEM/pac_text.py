@@ -7,8 +7,8 @@ import sys
 
 def help():
 	print('usage:pac_text [-d|-i]')
-	print('\t-d\tdump text from TEXT.DAT')
-	print('\t-i\tpack text into TEXT.DAT_NEW')
+	print('\t-d\tdump text from TEXT.DAT SCRIPT.SRC')
+	print('\t-i\tpack text into TEXT.DAT_NEW SCRIPT.SRC_NEW')
 
 def byte2int(byte):
 	long_tuple=struct.unpack('L',byte)
@@ -33,35 +33,59 @@ def dumpstr(src):
 def dump():
 	src = open('TEXT.DAT', 'rb')
 	dst = open('text.txt', 'w', encoding='utf16')
+	ofp = open('SCRIPT.SRC','rb')
+	dfp = open('script.txt','w',encoding='utf16')
+	ofp.seek(0x6C450)
+	#全文件扫描文本地址，所以肯定不止一处，需要确定一个开始扫描的地址，魔女こいにっき是这个地址，各个游戏都不同，自行判断
 	src.seek(0x0C)
 	count = byte2int(src.read(4))
 	for i in range(0, count):
+		if i >= 0x175:#文本开始的编号，同样各个游戏都不同
+			off = src.tell()
+			while 1:
+				if byte2int(ofp.read(4)) == off:
+					res = "○%08d○%X\n"%(i,ofp.tell() - 4)
+					print('text num:%d script off:0x%X'%(i,ofp.tell() - 4))
+					dfp.write(res)
+					break
 		num = byte2int(src.read(4))
 		dst.write(FormatString(dumpstr(src),num))
-	print('all %d row'%(count))
+	print('\nall %d row'%(count))
 
 def pack():
 	src = open('TEXT.DAT', 'rb')
 	fin = open('text.txt', 'r',encoding='utf16')
 	dst = open('TEXT.DAT_NEW', 'wb')
+	fp = open('SCRIPT.SRC','rb')
+	ofp = open('SCRIPT.SRC_NEW','wb')
+	dfp = open('script.txt','r',encoding='utf16')
+	buff = fp.read(os.path.getsize('SCRIPT.SRC'))
+	ofp.write(buff)
+	dict = {}
+	for rows in dfp:
+		row = rows[1:].rstrip('\r\n').split('○')
+		num = str(int(row[0]))
+		off = int(row[1],16)
+		dict[num] = off
 	buff = src.read(0x10)
 	dst.write(buff)
 	for rows in fin:
 		if rows[0] != '●':
 			continue
 		row = rows[1:].rstrip('\r\n').split('●')
+		if int(row[0]) >= 0x175:
+			ofp.seek(dict[str(int(row[0]))])
+			ofp.write(int2byte(dst.tell()))
 		num = int2byte(int(row[0]))
 		line = row[1].encode('932')
 		dst.write(num)
 		dst.write(line)
 		dst.write(struct.pack('B',0))
 
-
-
 def main():
 	print('project：Niflheim-SOFTPAL_ADV_SYSTEM')
-	print('用于导入导出文本(TEXT.DAT)')
-	print('by Destinyの火狐 2016.11.08\n')
+	print('用于导入导出文本，确保TEXT.DAT与SCRIPT.SRC和本程序在同一目录下')
+	print('by Destinyの火狐 2016.11.15\n')
 	if len(sys.argv) != 2:
 		help()
 	else:
