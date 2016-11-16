@@ -7,6 +7,8 @@ https://github.com/Inori/FuckGalEngine/tree/master/PAC
 pgd2png、png2pgd
 crass源码
 ##[New]
+ver 0.2
+支持文本脚本简单导入导出，可实现超长汉化
 ver 0.1
 支持魔女こいにっき
 图片仅支持32或24位PGD3类型
