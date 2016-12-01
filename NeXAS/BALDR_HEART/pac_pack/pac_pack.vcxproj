@@ -148,6 +148,9 @@
   <ItemGroup>
     <ClCompile Include="pac_pack.c" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="BH_huffman_comp.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
