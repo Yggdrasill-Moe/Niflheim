@@ -30,11 +30,12 @@ struct header
 
 struct index
 {
-	unit8 name[64];//文件名
+	WCHAR name[64];//文件名
 	unit32 Offset;//文件偏移
 	unit32 FileSize;//解压大小
 	unit32 ComSize;//未解压大小
 }Index[7000];
+
 /*
 void ReadIndex(char *fname)
 {
@@ -130,12 +131,88 @@ void packFileNoIndex(char *fname)
 	//printf("IndexSize:0x%X\n", compsize);
 }
 */
+
+unit32 process_dir(char *dname)
+{
+	long Handle;
+	unit32 i = 0;
+	struct _wfinddata64i32_t FileInfo;
+	_chdir(dname);//跳转路径
+	if ((Handle = _wfindfirst(L"*.*", &FileInfo)) == -1L)
+	{
+		printf("没有找到匹配的项目\n");
+		system("pause");
+		return -1;
+	}
+	do
+	{
+		if (FileInfo.name[0] == '.')  //过滤本级目录和父目录
+			continue;
+		swprintf(Index[FileNum].name, 260, FileInfo.name);
+		Index[FileNum].FileSize = FileInfo.size;
+		Index[FileNum].ComSize = Index[FileNum].FileSize * 4;
+		FileNum++;
+	} while (_wfindnext(Handle, &FileInfo) == 0);
+	return FileNum;
+}
+
+void PackFile(char *fname)
+{
+	FILE *src, *dst;
+	unit32 i, compsize;
+	unit8 *udata, *cdata, dstname[200];
+	sprintf(pac_header.magic, "PAC\0");
+	pac_header.num = FileNum;
+	pac_header.mode = 4;
+	pac_header.mode &= 0xFF;
+	sprintf(dstname, "%s.pac", fname);
+	dst = fopen(dstname, "wb");
+	fwrite(&pac_header, 1, sizeof(pac_header), dst);
+	_chdir(fname);
+	for (i = 0; i < pac_header.num; i++)
+	{
+		src = _wfopen(Index[i].name, L"rb");
+		udata = malloc(Index[i].FileSize);
+		cdata = malloc(Index[i].ComSize);
+		Index[i].Offset = ftell(dst);
+		fread(udata, 1, Index[i].FileSize, src);
+		compress2(cdata, &Index[i].ComSize, udata, Index[i].FileSize, Z_DEFAULT_COMPRESSION);
+		fwrite(cdata, 1, Index[i].ComSize, dst);
+		free(cdata);
+		free(udata);
+		fclose(src);
+		wprintf(L"%ls offset:0x%X filesize:0x%X comsize:0x%X\n", Index[i].name, Index[i].Offset, Index[i].FileSize, Index[i].ComSize);
+	}
+	udata = malloc(76 * pac_header.num);
+	compsize = 76 * pac_header.num * 4;
+	cdata = malloc(compsize);
+	memset(udata, 0, 76 * pac_header.num);
+	for (i = 0; i < pac_header.num; i++)
+	{
+		WideCharToMultiByte(932, 0, Index[i].name, 64, dstname, 64, NULL, FALSE);
+		memcpy(&udata[i * 76], dstname, 64);
+		memcpy(&udata[i * 76 + 64], &Index[i].Offset, 4);
+		memcpy(&udata[i * 76 + 68], &Index[i].FileSize, 4);
+		memcpy(&udata[i * 76 + 72], &Index[i].ComSize, 4);
+	}
+	huffman_compress(cdata, &compsize, udata, 76 * pac_header.num);
+	for (i = 0; i < compsize; i++)
+		cdata[i] = ~cdata[i];
+	fwrite(cdata, 1, compsize, dst);
+	fwrite(&compsize, 1, 4, dst);
+	free(cdata);
+	free(udata);
+	fclose(dst);
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "chs");
 	printf("project：Niflheim-BALDR HEART\n用于封包BH的pac文件。\n将pac文件拖到程序上。\nby Darkness-TX 2016.12.02\n\n");
 	//ReadIndex(argv[1]);
 	//packFileNoIndex(argv[1]);
+	process_dir(argv[1]);
+	PackFile(argv[1]);
 	printf("已完成，总文件数%d\n", FileNum);
 	system("pause");
 	return 0;

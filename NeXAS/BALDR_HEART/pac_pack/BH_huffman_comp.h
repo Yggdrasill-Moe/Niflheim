@@ -32,7 +32,8 @@ int bit_put_high(struct bits *bits, unsigned char setval)
 {
 	bits->curbits++;
 	bits->cache |= (setval & 1) << (8 - bits->curbits);
-	if (bits->curbits == 8) {
+	if (bits->curbits == 8)
+	{
 		if (bits->curbyte >= bits->stream_length)
 			return -1;
 		bits->stream[bits->curbyte++] = bits->cache;
@@ -51,7 +52,8 @@ int bits_put_high(struct bits *bits, unsigned int req_bits, void *setval)
 
 	this_byte = req_bits / 8;
 	this_bits = req_bits & 7;
-	for (int k = (int)this_bits - 1; k >= 0; k--) {
+	for (int k = (int)this_bits - 1; k >= 0; k--)
+	{
 		unsigned char bitval;
 
 		bitval = !!(((unsigned char *)setval)[this_byte] & (1 << k));
@@ -60,7 +62,8 @@ int bits_put_high(struct bits *bits, unsigned int req_bits, void *setval)
 	}
 	this_bits = req_bits & ~7;
 	this_byte--;
-	for (i = 0; i < this_bits; i++) {
+	for (i = 0; i < this_bits; i++)
+	{
 		unsigned char bitval;
 
 		bitval = !!(((unsigned char *)setval)[this_byte - i / 8] & (1 << (7 - (i & 7))));
@@ -90,13 +93,16 @@ typedef struct huffman_node
 static void huffman1_node_encode(huffman_node_t *node, unsigned int code, unsigned int code_lengths)
 {
 	/* 最先编码左下角的叶节点开始 */
-	if (node->left_child) {
+	if (node->left_child)
+	{
 		code <<= 1;
 		code_lengths++;
 		huffman1_node_encode(node->left_child, code, code_lengths);
 		code |= 1;
 		huffman1_node_encode(node->right_child, code, code_lengths);
-	} else {	/* 页结点 */
+	}
+	else
+	{	/* 页结点 */
 		node->code = code;
 		node->code_lengths = code_lengths;	
 	}
@@ -104,7 +110,8 @@ static void huffman1_node_encode(huffman_node_t *node, unsigned int code, unsign
 
 static int huffman_code_tree_encode(struct bits *bits, huffman_node_t *parent)
 {
-	if (parent->left_child) {
+	if (parent->left_child)
+	{
 		if (bit_put_high(bits, 1))	/* 表示当前父节点有孩子 */
 			return -1;
 		
@@ -113,7 +120,9 @@ static int huffman_code_tree_encode(struct bits *bits, huffman_node_t *parent)
 		
 		if (huffman_code_tree_encode(bits, parent->right_child))
 			return -1;
-	} else {	/* 页节点 */
+	}
+	else
+	{	/* 页节点 */
 		if (bit_put_high(bits, 0))	/* 位0标志表示是页节点 */
 			return -1;	
 		
@@ -148,14 +157,16 @@ static unsigned int huffman_tree_create(huffman_node_t *nodes)
 
 	leaves_node = i;
 
-	if (leaves_node < 2) {
+	if (leaves_node < 2)
+	{
 		printf("有效的叶结点数目过少\n");
 		return -1;
 	}
 
 	parent_node = leaves_node;
 	child_node = parent_node - 1;	
-	while (child_node > 0) {
+	while (child_node > 0)
+	{
 		pnode = &nodes[parent_node++];	/* 合并左右叶结点以后的新结点 */
 		/* CUSTOM!! */
 		pnode->left_child = huffman_child_init(pnodes[child_node--], 0);	/* 第1个child结点作为左结点 */
@@ -163,7 +174,8 @@ static unsigned int huffman_tree_create(huffman_node_t *nodes)
 		pnode->left_child->parent = pnode->right_child->parent = pnode;		/* 新结点成为父结点 */
 		pnode->weight = pnode->left_child->weight + pnode->right_child->weight;/* 父结点权值为2个孩子的权值之和 */
 		/* 找到一个合适的插入点, 将父结点插入剩余结点组成的森林中 */
-		for (i = child_node; i >= 0; i--) {
+		for (i = child_node; i >= 0; i--)
+		{
 			/* 找到一个合适的插入点 */
 			/* custom!! */
 			if (pnodes[i]->weight >= pnode->weight)
@@ -237,7 +249,8 @@ int huffman_compress(unsigned char *compr, unsigned long *comprlen, unsigned cha
 	qsort(nodes, 256, sizeof(huffman_node_t), huffman_ascii_compare);
 
 	output_bits = bits.curbyte * 8 + bits.curbits;
-	for (i = 0; i < uncomprlen; i++) {
+	for (i = 0; i < uncomprlen; i++)
+	{
 		if (bits_put_high(&bits, nodes[uncompr[i]].code_lengths, (unsigned char *)&nodes[uncompr[i]].code))
 				break;
 		output_bits += nodes[uncompr[i]].code_lengths;
