@@ -166,6 +166,7 @@ void PackFile(char *fname)
 	pac_header.mode = 4;
 	pac_header.mode &= 0xFF;
 	sprintf(dstname, "%s.pac", fname);
+	_chdir("..");
 	dst = fopen(dstname, "wb");
 	fwrite(&pac_header, 1, sizeof(pac_header), dst);
 	_chdir(fname);
