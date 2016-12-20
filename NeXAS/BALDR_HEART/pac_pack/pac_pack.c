@@ -13,7 +13,6 @@ made by Darkness-TX
 #include <zlib.h>
 #include <locale.h>
 #include "BH_huffman_comp.h"
-//#include "../pac_unpack/BH_huffman_dec.h"
 
 typedef unsigned char  unit8;
 typedef unsigned short unit16;
@@ -209,7 +208,7 @@ void PackFile(char *fname)
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "chs");
-	printf("project：Niflheim-BALDR HEART\n用于封包BH的pac文件。\n将pac文件拖到程序上。\nby Darkness-TX 2016.12.02\n\n");
+	printf("project：Niflheim-BALDR HEART\n用于封包BH的pac文件。\n将文件夹拖到程序上。\nby Darkness-TX 2016.12.02\n\n");
 	//ReadIndex(argv[1]);
 	//packFileNoIndex(argv[1]);
 	process_dir(argv[1]);

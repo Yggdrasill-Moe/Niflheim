@@ -1,3 +1,8 @@
+/*
+用于解开fnt转换成png
+made by Darkness-TX
+2016.12.05
+*/
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,7 +23,8 @@ struct header
 	unit8 magic[4];//PAC\0
 	unit8 magic2[9];//DATA VER-
 	unit16 flag;//为1
-	unit16 fontflag;//0101没字体名,0301有字体名
+	unit16 fontflag;//0101没字体名，字模0xC一组；0301有字体名，字模0x10一组
+	unit32 seekflag;//0xFFFF00右移9字节
 	unit32 height;
 	unit32 width;
 	unit32 compsize;
@@ -61,10 +67,10 @@ void WritePng(FILE *pngfile, unit32 width, unit32 height, unit8* data)
 	src = data;
 	for (i = 0, k = 0; i < width*height * 2; i += 2, k++)
 	{
-		dst[k * 4 + 0] = src[i];
-		dst[k * 4 + 1] = src[i];
-		dst[k * 4 + 2] = src[i];
-		dst[k * 4 + 3] = 0xFF;//src[i + 1]
+		dst[k * 4 + 0] = 0xFF;
+		dst[k * 4 + 1] = 0xFF;
+		dst[k * 4 + 2] = 0xFF;
+		dst[k * 4 + 3] = src[i + 1];
 	}
 	for (i = 0; i < height; i++)
 		png_write_row(png_ptr, dst + i*width * 4);
@@ -73,49 +79,47 @@ void WritePng(FILE *pngfile, unit32 width, unit32 height, unit8* data)
 	free(dst);
 }
 
-void ReadIndex(char *fname)
+void ReadIndex(FILE *src, char *fname)
 {
-	FILE *src, *dst;
+	FILE *dst;
 	unit8 *cdata, *udata, dstname[200];
-	unit32 i, savepos;
+	unit32 i;
 	sprintf(dstname, "%s_INDEX", fname);
-	src = fopen(fname, "rb");
 	fread(fnt_header.magic, 1, 4, src);
-	fread(fnt_header.magic2, 1, 9, src);
-	fread(&fnt_header.flag, 1, 2, src);
-	fread(&fnt_header.fontflag, 1, 2, src);
 	if (strncmp(fnt_header.magic, "FNT\0", 4) != 0)
 	{
 		printf("文件头不是FNT\0!");
 		exit(0);
 	}
-	else if (strncmp(fnt_header.magic2, "DATA VER-", 9) != 0)
+	if (strncmp(fname, "systemascii", 11) != 0)
 	{
-		printf("文件头无DATA VER-!");
-		exit(0);
-	}
-	else if (fnt_header.flag != 1)
-	{
-		printf("flag不为1!");
-		exit(0);
-	}
-	if (fnt_header.fontflag == 0x103)
-	{
-		while (fgetc(src) != '\0')
+		fread(fnt_header.magic2, 1, 9, src);
+		fread(&fnt_header.flag, 1, 2, src);
+		fread(&fnt_header.fontflag, 1, 2, src);
+		if (strncmp(fnt_header.magic2, "DATA VER-", 9) != 0)
 		{
-
+			printf("文件头无DATA VER-!");
+			exit(0);
 		}
+		else if (fnt_header.flag != 1)
+		{
+			printf("flag不为1!");
+			exit(0);
+		}
+		if (fnt_header.fontflag == 0x103)
+			while (fgetc(src) != '\0');
 	}
 	fread(&fnt_header.width, 1, 4, src);
 	fread(&fnt_header.height, 1, 4, src);
 	fread(&fnt_header.decompsize, 1, 4, src);
-	if (fnt_header.decompsize == 0xFFFF00)
+	if (fnt_header.decompsize == 0xFFFF00 || fnt_header.decompsize == 0xFFFF01)
 	{
+		fnt_header.seekflag = fnt_header.decompsize;
 		fseek(src, 9, SEEK_CUR);
 		fread(&fnt_header.decompsize, 1, 4, src);
 	}
 	fread(&fnt_header.compsize, 1, 4, src);
-	printf("width:%d height%d decompsize:0x%X compsize:0x%X\n", fnt_header.width, fnt_header.height, fnt_header.decompsize, fnt_header.compsize);
+	printf("Index:\n\twidth:%d height%d decompsize:0x%X compsize:0x%X\n", fnt_header.width, fnt_header.height, fnt_header.decompsize, fnt_header.compsize);
 	cdata = malloc(fnt_header.compsize);
 	udata = malloc(fnt_header.decompsize);
 	fread(cdata, 1, fnt_header.compsize, src);
@@ -124,13 +128,7 @@ void ReadIndex(char *fname)
 	fwrite(udata, 1, fnt_header.decompsize, dst);
 	free(cdata);
 	fclose(dst);
-	if (strncmp(fname, "system16.fnt", 12) == 0)
-	{
-		font_count = fnt_header.decompsize / 0xC;
-		for (i = 0; i < font_count; i++)
-			memcpy(&font_info[i], &udata[i * 0xC], 0xC);
-	}
-	else if (strncmp(fname, "system24.fnt", 12) == 0)
+	if (fnt_header.fontflag == 0x103)
 	{
 		font_count = fnt_header.decompsize / 0x10;
 		for (i = 0; i < font_count; i++)
@@ -141,14 +139,29 @@ void ReadIndex(char *fname)
 			memcpy(&font_info[i].unk, &udata[i * 0x10], 4);
 		}
 	}
+	else
+	{
+		font_count = fnt_header.decompsize / 0xC;
+		for (i = 0; i < font_count; i++)
+			memcpy(&font_info[i], &udata[i * 0xC], 0xC);
+	}
 	printf("font_count:%d\n", font_count);
 	system("pause");
 	free(udata);
+}
+
+void WritePngFile(char *fname)
+{
+	FILE *src, *dst;
+	unit32 i, savepos;
+	unit8 *cdata, dstname[200];
+	src = fopen(fname, "rb");
+	ReadIndex(src, fname);
 	savepos = ftell(src);
 	sprintf(dstname, "%s_unpack", fname);
 	_mkdir(dstname);
 	_chdir(dstname);
-	for (i = 1; i < font_count; i++)
+	for (i = 0; i < font_count; i++)
 	{
 		printf("\t%08d.png unk:0x%X width:%d height:%d offset:0x%X\n", i, font_info[i].unk, font_info[i].width, font_info[i].height, font_info[i].offset);
 		if (font_info[i].width != 0 && font_info[i].height != 0)
@@ -174,8 +187,8 @@ void ReadIndex(char *fname)
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "chs");
-	printf("project：Niflheim-BALDR HEART\n用于解压BH的fnt字体文件索引。\n将fnt文件拖到程序上。\nby Darkness-TX 2016.12.05\n\n");
-	ReadIndex(argv[1]);
+	printf("project：Niflheim-BALDR HEART\n用于解压BH的fnt字体文件索引并将字模导出成png。\n将fnt文件拖到程序上。\nby Darkness-TX 2016.12.05\n\n");
+	WritePngFile(argv[1]);
 	system("pause");
 	return 0;
 }

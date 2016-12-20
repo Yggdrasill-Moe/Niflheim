@@ -43,45 +43,40 @@ void ReadIndex(char *fname)
 	src = fopen(fname, "rb");
 	sprintf(dstname, "%s_INDEX", fname);
 	fread(pac_header.magic, 4, 1, src);
-	if (strncmp(pac_header.magic,"PAC\0",4) != 0)
+	if (strncmp(pac_header.magic, "PAC\0", 4) != 0)
 	{
-		printf("文件头不是PAC\0!\n");
-		fclose(src);
+		printf("文件头不是PAC\\0!\n要继续解包请按任意键，不解包请关闭程序。\n");
+		system("pause");
+	}
+	fread(&pac_header.num, 4, 1, src);
+	fread(&pac_header.mode, 4, 1, src);
+	printf("%s filenum:%d mode:%d\n\n", fname, pac_header.num, pac_header.mode);
+	if (pac_header.mode != 4)
+	{
+		printf("不是模式4！\n");
 		system("pause");
 		exit(0);
 	}
 	else
 	{
-		fread(&pac_header.num, 4, 1, src);
-		fread(&pac_header.mode, 4, 1, src);
-		printf("%s filenum:%d mode:%d\n\n", fname, pac_header.num, pac_header.mode);
-		if (pac_header.mode != 4)
-		{
-			printf("不是模式4！\n");
-			system("pause");
-			exit(0);
-		}
-		else
-		{
-			fseek(src, -4, SEEK_END);
-			fread(&ComSize, 4, 1, src);
-			fseek(src, -4 - ComSize, SEEK_END);
-			cdata = malloc(ComSize);
-			fread(cdata, ComSize, 1, src);
-			for (i = 0; i < ComSize; i++)
-				cdata[i] = ~cdata[i];
-			UncomSize = 76 * pac_header.num;
-			udata = malloc(UncomSize);
-			huffman_uncompress(udata, &UncomSize, cdata, ComSize);
-			dst = fopen(dstname, "wb");
-			fwrite(udata, UncomSize, 1, dst);
-			free(cdata);
-			fclose(dst);
-			fclose(src);
-			for (i = 0; i < pac_header.num; i++)
-				memcpy(&Index[i], &udata[i * 76], 76);
-			free(udata);
-		}
+		fseek(src, -4, SEEK_END);
+		fread(&ComSize, 4, 1, src);
+		fseek(src, -4 - ComSize, SEEK_END);
+		cdata = malloc(ComSize);
+		fread(cdata, ComSize, 1, src);
+		for (i = 0; i < ComSize; i++)
+			cdata[i] = ~cdata[i];
+		UncomSize = 76 * pac_header.num;
+		udata = malloc(UncomSize);
+		huffman_uncompress(udata, &UncomSize, cdata, ComSize);
+		dst = fopen(dstname, "wb");
+		fwrite(udata, UncomSize, 1, dst);
+		free(cdata);
+		fclose(dst);
+		fclose(src);
+		for (i = 0; i < pac_header.num; i++)
+			memcpy(&Index[i], &udata[i * 76], 76);
+		free(udata);
 	}
 }
 
@@ -103,13 +98,21 @@ void UnpackFile(char *fname)
 		udata = malloc(Index[i].FileSize);
 		fseek(src, Index[i].Offset, SEEK_SET);
 		fread(cdata, Index[i].ComSize, 1, src);
-		uncompress(udata, &Index[i].FileSize, cdata, Index[i].ComSize);
-		fwrite(udata, Index[i].FileSize, 1, dst);
+		if (Index[i].ComSize != Index[i].FileSize)
+		{
+			uncompress(udata, &Index[i].FileSize, cdata, Index[i].ComSize);
+			fwrite(udata, Index[i].FileSize, 1, dst);
+			wprintf(L"%ls offset:0x%X filesize:0x%X comsize:0x%X\n", dstname, Index[i].Offset, Index[i].FileSize, Index[i].ComSize);
+		}
+		else
+		{
+			fwrite(cdata, Index[i].FileSize, 1, dst);
+			wprintf(L"%ls offset:0x%X filesize:0x%X\n", dstname, Index[i].Offset, Index[i].FileSize);
+		}
 		free(cdata);
 		free(udata);
 		fclose(dst);
 		FileNum += 1;
-		wprintf(L"%ls offset:0x%X filesize:0x%X comsize:0x%X\n", dstname, Index[i].Offset, Index[i].FileSize, Index[i].ComSize);
 	}
 	fclose(src);
 }

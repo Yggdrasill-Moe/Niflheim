@@ -43,8 +43,10 @@ int WINAPI NewGetGlyphOutlineW(HDC hdc,UINT uChar,UINT fuFormat,LPGLYPHMETRICS l
 {
 	if (uChar == 0x8179)
 		uChar = 0xA1BE;
-	else if(uChar == 0x817A)
+	else if (uChar == 0x817A)
 		uChar = 0xA1BF;
+	else if (uChar == 0x8f7f)
+		uChar = 0xced2;
 	return ((PfuncGetGlyphOutlineW)g_pOldGetGlyphOutlineW)(hdc, uChar, fuFormat, lpgm, cjBuffer, pvBuffer, lpmat2);
 }
 //±ß½ç¼ì²â
@@ -84,9 +86,9 @@ BOOL APIENTRY SetHook()
 	DetourAttach(&g_pOldGetGlyphOutlineW, NewGetGlyphOutlineW);
 	//g_pOldCreateFontA = DetourFindFunction("kernel32.dll", "MultiByteToWideChar");
 	//DetourAttach(&g_pOldMultiByteToWideChar, NewMultiByteToWideChar);
-	LONG ret = DetourTransactionCommit();
 	BorderPatch();
 	EnumFontFamiliesAPatch();
+	LONG ret = DetourTransactionCommit();
 	return ret == NO_ERROR;
 }
 
