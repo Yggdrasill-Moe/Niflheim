@@ -1,11 +1,12 @@
 #include "pac.h"
+#include <fstream>  
 
 
 int main(int agrc, char* agrv[])
 {
-	cout << "project：Niflheim-SOFTPAL_ADV_SYSTEM\n用于解包及封包pac。\nby Destinyの火狐 2016.11.07\n";
+	cout << "project：Niflheim-SOFTPAL_ADV_SYSTEM\n用于解包及封包pac；\n用于加密解密文件（仅支持文件首字符为$）。\nby Destinyの火狐 2016.12.21\n";
 	if (agrc != 3)
-		cout << "\nUsage:\n\texport:\tfuckpac -e pacfile\n\tpack:\tfuckpac -p oldpacfile\n";
+		cout << "\nUsage:\n\texport:\texe -e pacfile\n\tpack:\texe -p oldpacfile\n\tdec:\texe -de file\n\tenc:\texe -en file\n";
 	else
 	{
 		if (strcmp(agrv[1],"-e")==0)
@@ -31,6 +32,44 @@ int main(int agrc, char* agrv[])
 				printf("all %d files pack\n", pac.filenum);
 			else
 				cout << "封包失败！\n";
+		}
+		else if (strcmp(agrv[1], "-de") == 0)
+		{
+			PAC pac;
+			ifstream in;
+			ofstream out;
+			in.open(agrv[2], ios::in | ios::binary | ios::ate);
+			DWORD size = in.tellg();
+			in.seekg(0, ios::beg);
+			char* buff = new char[size];
+			in.read(buff, size);
+			in.close();
+			pac.decrypt((BYTE *)buff, size);
+			string outname = agrv[2];
+			out.open((outname + ".de").c_str(), ios::out | ios::binary);
+			out.write(buff, size);
+			delete[] buff;
+			out.close();
+			cout << "解密完成！\n";
+		}
+		else if (strcmp(agrv[1], "-en") == 0)
+		{
+			PAC pac;
+			ifstream in;
+			ofstream out;
+			in.open(agrv[2], ios::in | ios::binary | ios::ate);
+			DWORD size = in.tellg();
+			in.seekg(0, ios::beg);
+			char* buff = new char[size];
+			in.read(buff, size);
+			in.close();
+			pac.encrypt((BYTE *)buff, size);
+			string outname = agrv[2];
+			out.open((outname + ".en").c_str(), ios::out | ios::binary);
+			out.write(buff, size);
+			delete[] buff;
+			out.close();
+			cout << "加密完成！\n";
 		}
 		else
 			cout << "未知参数！\n";

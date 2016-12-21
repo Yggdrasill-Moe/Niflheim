@@ -1,5 +1,9 @@
 #include "pac.h"
 
+PAC::PAC()
+{
+}
+
 PAC::PAC(string pacname)
 {
 	PAC::ReadIndex(pacname);
@@ -173,6 +177,7 @@ bool PAC::pacpack()
 
 PAC::~PAC()
 {
-	fclose(fp);
+	if(fp)
+		fclose(fp);
 	findexs.clear();
 }

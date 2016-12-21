@@ -76,8 +76,10 @@ def pack():
 		if int(row[0]) >= 0x175:
 			ofp.seek(dict[str(int(row[0]))])
 			ofp.write(int2byte(dst.tell()))
+			line = row[1].encode('936',errors='ignore')
+		else:
+			line = row[1].encode('932')
 		num = int2byte(int(row[0]))
-		line = row[1].encode('932')
 		dst.write(num)
 		dst.write(line)
 		dst.write(struct.pack('B',0))

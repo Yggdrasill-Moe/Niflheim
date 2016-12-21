@@ -36,16 +36,17 @@ class PAC
 {
 public:
 	DWORD filenum;
+	PAC();
 	PAC(string pacname);
 	bool ReadIndex(string pacname);
 	bool pacexport();
 	bool pacpack();
+	void decrypt(BYTE* data, DWORD size);
+	void encrypt(BYTE* data, DWORD size);
 	vector<findex_t> findexs;
 	~PAC();
 
 private:
-	void decrypt(BYTE* data, DWORD size);
-	void encrypt(BYTE* data, DWORD size);
 	BYTE rol(int val, int n);
 	BYTE ror(int val, int n);
 
