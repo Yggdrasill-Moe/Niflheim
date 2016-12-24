@@ -162,8 +162,8 @@ void ReadIndex(FILE *src, char *fname)
 void WritePngFile(char *fname)
 {
 	FILE *src, *dst;
-	unit32 i, savepos;
-	unit8 *cdata, dstname[200];
+	unit32 i, savepos, k;
+	unit8 *cdata, *bdata, dstname[200];
 	src = fopen(fname, "rb");
 	ReadIndex(src, fname);
 	savepos = ftell(src);
@@ -182,12 +182,24 @@ void WritePngFile(char *fname)
 			dst = fopen(dstname, "wb");
 			WritePng(dst, font_info[i].width, font_info[i].height, cdata);
 			fclose(dst);
+			bdata = malloc(font_info[i].width*font_info[i].height);
+			for (k = 0; k < font_info[i].width*font_info[i].height; k++)
+				bdata[k] = cdata[k * 2 + 1];
 			free(cdata);
+			sprintf(dstname, "%08d.bin", i);
+			dst = fopen(dstname, "wb");
+			fwrite(bdata, 1, font_info[i].width*font_info[i].height, dst);
+			fclose(dst);
+			free(bdata);
 		}
 		else
 		{
 			sprintf(dstname, "%08d.png", i);
 			dst = fopen(dstname, "wb");
+			fclose(dst);
+			sprintf(dstname, "%08d.bin", i);
+			dst = fopen(dstname, "wb");
+			fclose(dst);
 		}
 	}
 	fclose(src);
