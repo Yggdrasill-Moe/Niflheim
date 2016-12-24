@@ -43,7 +43,7 @@ void WritePng(FILE *pngfile, unit32 width, unit32 height, unit8* data)
 	src = data;
 	for (i = 0, k = 0; i < width*height; i++, k++)
 	{
-		if (src[i] == 0 && src[i] >= 0x80)
+		if (src[i] == 0)
 		{
 			dst[k * 4 + 0] = 0xFF;
 			dst[k * 4 + 1] = 0xFF;
