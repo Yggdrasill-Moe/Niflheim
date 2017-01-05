@@ -48,15 +48,14 @@ void WritePng(FILE *pngfile, unit32 width, unit32 height, unit8* data)
 			dst[k * 4 + 0] = 0;
 			dst[k * 4 + 1] = 0;
 			dst[k * 4 + 2] = 0;
-			dst[k * 4 + 3] = src[i];
 		}
 		else
 		{
 			dst[k * 4 + 0] = 0xFF;
 			dst[k * 4 + 1] = 0xFF;
 			dst[k * 4 + 2] = 0xFF;
-			dst[k * 4 + 3] = src[i] << 2;
 		}
+		dst[k * 4 + 3] = src[i];
 	}
 	for (i = 0; i < height; i++)
 		png_write_row(png_ptr, dst + i*width * 4);
@@ -105,7 +104,15 @@ void FontGlyph(wchar_t chText, unit32 i)
 			sprintf(dstname, "%08d.png", i);
 			FILE *fp = fopen(dstname, "wb");
 			wprintf(L"ch:%lc width:%d height:%d\n", chText, NeedSize / gm.gmBlackBoxY, gm.gmBlackBoxY);
+			for (unit32 j = 0; j < NeedSize; j++)
+				if (lpBuf[j] == 0)
+					lpBuf[j] = 0;
+				else if (lpBuf[j] == 0x40)
+					lpBuf[j] = 0xFF;
+				else
+					lpBuf[j] <<= 2;
 			WritePng(fp, NeedSize / gm.gmBlackBoxY, gm.gmBlackBoxY, lpBuf);
+			//fwrite(lpBuf, 1, NeedSize, fp);
 			fclose(fp);
 			free(lpBuf);
 		}
