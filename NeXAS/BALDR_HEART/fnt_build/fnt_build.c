@@ -33,7 +33,8 @@ struct header
 
 struct Font_Info
 {
-	unit32 unk;
+	unit16 x;
+	unit16 y;
 	unit16 width;
 	unit16 height;
 	unit32 offset;
@@ -41,11 +42,11 @@ struct Font_Info
 
 unit32 font_count = 0;
 
-unit8* ReadIndex(char *fname,unit32 *savepos)
+unit8* ReadIndex(char *fname,unit8* fntname,unit32 *savepos)
 {
 	FILE *src;
 	unit8 *cdata, *udata;
-	unit32 i;
+	unit32 i, fntnamesize;
 	src = fopen(fname, "rb");
 	fread(fnt_header.magic, 1, 4, src);
 	if (strncmp(fnt_header.magic, "FNT\0", 4) != 0)
@@ -70,6 +71,9 @@ unit8* ReadIndex(char *fname,unit32 *savepos)
 		}
 		if (fnt_header.fontflag == 0x103)
 			while (fgetc(src) != '\0');
+		fntnamesize = ftell(src) - 0x11;
+		fseek(src, 0x11, SEEK_SET);
+		fread(fntname, 1, fntnamesize, src);
 	}
 	fread(&fnt_header.width, 1, 4, src);
 	fread(&fnt_header.height, 1, 4, src);
@@ -95,7 +99,8 @@ unit8* ReadIndex(char *fname,unit32 *savepos)
 			memcpy(&font_info[i].offset, &udata[i * 0x10 + 0xC], 4);
 			memcpy(&font_info[i].width, &udata[i * 0x10 + 0x4], 2);
 			memcpy(&font_info[i].height, &udata[i * 0x10 + 0x6], 2);
-			memcpy(&font_info[i].unk, &udata[i * 0x10], 4);
+			memcpy(&font_info[i].x, &udata[i * 0x10], 4);
+			memcpy(&font_info[i].y, &udata[i * 0x10 + 0x2], 4);
 		}
 	}
 	else
@@ -153,12 +158,14 @@ unit8* ReadIndex(char *fname,unit32 *savepos)
 
 void WriteFntFile(char *fname)
 {
-	FILE *src, *dst;
-	unit8 *udata, *cdata, *pdata, *bdata, dstname[200];
+	FILE *src, *dst, *tbl_xy;
+	unit8 *udata, *cdata, *pdata, *bdata, dstname[200], fntname[32];
 	unit32 savepos, width, height, i, k, offset = 0;
-	udata = ReadIndex(fname, &savepos);
+	wchar_t data[256], tbl_x[5], tbl_y[5];
+	udata = ReadIndex(fname, fntname, &savepos);
 	sprintf(dstname, "%s_new", fname);
 	dst = fopen(dstname, "wb");
+	tbl_xy = fopen("tbl_xy.txt", "rt,ccs=UNICODE");
 	sprintf(dstname, "%s_unpack", fname);
 	_chdir(dstname);
 	for (i = 0; i < font_count; i++)
@@ -205,7 +212,10 @@ void WriteFntFile(char *fname)
 	fwrite(&fnt_header.flag, 1, 2, dst);
 	fwrite(&fnt_header.fontflag, 1, 2, dst);
 	if (fnt_header.fontflag == 0x103)
-		fseek(dst, savepos - 8, SEEK_SET);
+	{
+		fprintf(dst, "%s", fntname);
+		fputc(0, dst);
+	}
 	fwrite(&fnt_header.width, 1, 4, dst);
 	fwrite(&fnt_header.height, 1, 4, dst);
 	if (fnt_header.seekflag == 0xFFFF00 || fnt_header.seekflag == 0xFFFF01)
@@ -220,8 +230,19 @@ void WriteFntFile(char *fname)
 			memcpy(&udata[i * 0x10 + 0xC], &font_info[i].offset, 4);
 			memcpy(&udata[i * 0x10 + 0x4], &font_info[i].width, 2);
 			memcpy(&udata[i * 0x10 + 0x6], &font_info[i].height, 2);
-			memcpy(&udata[i * 0x10], &font_info[i].unk, 4);
-			printf("fntnum:%d width:%d height:%d fntoffset:0x%X\n", i, font_info[i].width, font_info[i].height, font_info[i].offset);
+			if (i >= 1577)
+			{
+				if (fgetws(data, 256, tbl_xy) != NULL)
+				{
+					wcsncpy(tbl_x, data, wcschr(data, L' ') - data);
+					wcscpy(tbl_y, wcschr(data, L' ') + 1);
+					font_info[i].x = (unit16)_wtoi(tbl_x);
+					font_info[i].y = (unit16)_wtoi(tbl_y);
+				}
+			}
+			memcpy(&udata[i * 0x10], &font_info[i].x, 2);
+			memcpy(&udata[i * 0x10 + 0x2], &font_info[i].y, 2);
+			printf("fntnum:%d width:%d height:%d fntoffset:0x%X x:%d y:%d\n", i, font_info[i].width, font_info[i].height, font_info[i].offset, font_info[i].x, font_info[i].y);
 		}
 	}
 	else

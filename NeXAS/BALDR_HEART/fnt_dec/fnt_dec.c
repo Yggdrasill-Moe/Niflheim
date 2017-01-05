@@ -33,7 +33,8 @@ struct header
 
 struct Font_Info
 {
-	unit32 unk;
+	unit16 x;
+	unit16 y;
 	unit16 width;
 	unit16 height;
 	unit32 offset;
@@ -145,7 +146,8 @@ void ReadIndex(FILE *src, char *fname)
 			memcpy(&font_info[i].offset, &udata[i * 0x10 + 0xC], 4);
 			memcpy(&font_info[i].width, &udata[i * 0x10 + 0x4], 2);
 			memcpy(&font_info[i].height, &udata[i * 0x10 + 0x6], 2);
-			memcpy(&font_info[i].unk, &udata[i * 0x10], 4);
+			memcpy(&font_info[i].x, &udata[i * 0x10], 2);
+			memcpy(&font_info[i].y, &udata[i * 0x10 + 0x2], 2);
 		}
 	}
 	else
@@ -172,7 +174,7 @@ void WritePngFile(char *fname)
 	_chdir(dstname);
 	for (i = 0; i < font_count; i++)
 	{
-		printf("\t%08d.png unk:0x%X width:%d height:%d offset:0x%X\n", i, font_info[i].unk, font_info[i].width, font_info[i].height, font_info[i].offset);
+		printf("\t%08d.png x:%d y:%d width:%d height:%d offset:0x%X\n", i, font_info[i].x, font_info[i].y, font_info[i].width, font_info[i].height, font_info[i].offset);
 		if (font_info[i].width != 0 && font_info[i].height != 0)
 		{
 			fseek(src, font_info[i].offset + savepos, SEEK_SET);

@@ -64,7 +64,7 @@ void WritePng(FILE *pngfile, unit32 width, unit32 height, unit8* data)
 	free(dst);
 }
 
-void FontGlyph(wchar_t chText, unit32 i)
+GLYPHMETRICS FontGlyph(wchar_t chText, unit32 i)
 {
 	unit8 dstname[200];
 	LOGFONT logfont;
@@ -103,7 +103,7 @@ void FontGlyph(wchar_t chText, unit32 i)
 			GetGlyphOutline(hDC, chText, GGO_GRAY8_BITMAP, &gm, NeedSize, lpBuf, &mat2);
 			sprintf(dstname, "%08d.png", i);
 			FILE *fp = fopen(dstname, "wb");
-			wprintf(L"ch:%lc width:%d height:%d\n", chText, NeedSize / gm.gmBlackBoxY, gm.gmBlackBoxY);
+			wprintf(L"ch:%lc size:%d width:%d height:%d x:%d y:%d\n", chText, NeedSize, NeedSize / gm.gmBlackBoxY, gm.gmBlackBoxY, gm.gmptGlyphOrigin.x, ((int)gm.gmBlackBoxY - (int)gm.gmptGlyphOrigin.y) > 0 ? (gm.gmBlackBoxY - gm.gmptGlyphOrigin.y) : 0);
 			for (unit32 j = 0; j < NeedSize; j++)
 				if (lpBuf[j] == 0)
 					lpBuf[j] = 0;
@@ -121,6 +121,7 @@ void FontGlyph(wchar_t chText, unit32 i)
 		wprintf(L"所需大小错误！ size:0x%X\n", NeedSize);
 	DeleteObject(hFont);
 	DeleteDC(hDC);
+	return gm;
 }
 
 int main(int argc, char *argv[])
@@ -129,17 +130,22 @@ int main(int argc, char *argv[])
 	printf("project：Niflheim-BALDR HEART\n用于将字模导出成png。\n将txt文件拖到程序上。\nby Darkness-TX 2016.12.20\n\n");
 	unit32 slen, k = 0, i = 1577;
 	wchar_t tbl, data[256], *find;
-	FILE *Tbl = fopen(argv[1], "rt,ccs=UNICODE");
+	FILE *tbl_xy = fopen("tbl_xy.txt", "wt,ccs=UNICODE");
+	FILE *tbl_txt = fopen(argv[1], "rt,ccs=UNICODE");
+	GLYPHMETRICS gm;
 	_mkdir("tbl_fnt");
 	_chdir("tbl_fnt");
-	while (fgetws(data, 256, Tbl) != NULL)
+	while (fgetws(data, 256, tbl_txt) != NULL)
 	{
 		slen = wcslen(data);
 		find = wcschr(data, L'=');
 		tbl = data[find - data + 1];
-		FontGlyph(tbl, i);
+		gm = FontGlyph(tbl, i);
+		fwprintf(tbl_xy, L"%d %d\n", gm.gmptGlyphOrigin.x, ((int)gm.gmBlackBoxY - (int)gm.gmptGlyphOrigin.y) > 0 ? (gm.gmBlackBoxY - gm.gmptGlyphOrigin.y) : 0);
 		i++;
 	}
+	fclose(tbl_txt);
+	fclose(tbl_xy);
 	system("pause");
 	return 0;
 }
