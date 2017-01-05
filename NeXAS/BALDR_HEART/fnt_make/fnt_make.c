@@ -55,7 +55,7 @@ void WritePng(FILE *pngfile, unit32 width, unit32 height, unit8* data)
 			dst[k * 4 + 0] = 0xFF;
 			dst[k * 4 + 1] = 0xFF;
 			dst[k * 4 + 2] = 0xFF;
-			dst[k * 4 + 3] = src[i]+0xB0;
+			dst[k * 4 + 3] = src[i] << 2;
 		}
 	}
 	for (i = 0; i < height; i++)
@@ -104,7 +104,7 @@ void FontGlyph(wchar_t chText, unit32 i)
 			GetGlyphOutline(hDC, chText, GGO_GRAY8_BITMAP, &gm, NeedSize, lpBuf, &mat2);
 			sprintf(dstname, "%08d.png", i);
 			FILE *fp = fopen(dstname, "wb");
-			wprintf(L"char:%lc width:%d height:%d\n", chText, NeedSize / gm.gmBlackBoxY, gm.gmBlackBoxY);
+			wprintf(L"ch:%lc width:%d height:%d\n", chText, NeedSize / gm.gmBlackBoxY, gm.gmBlackBoxY);
 			WritePng(fp, NeedSize / gm.gmBlackBoxY, gm.gmBlackBoxY, lpBuf);
 			fclose(fp);
 			free(lpBuf);
@@ -123,8 +123,8 @@ int main(int argc, char *argv[])
 	unit32 slen, k = 0, i = 1577;
 	wchar_t tbl, data[256], *find;
 	FILE *Tbl = fopen(argv[1], "rt,ccs=UNICODE");
-	_mkdir("fnt");
-	_chdir("fnt");
+	_mkdir("tbl_fnt");
+	_chdir("tbl_fnt");
 	while (fgetws(data, 256, Tbl) != NULL)
 	{
 		slen = wcslen(data);

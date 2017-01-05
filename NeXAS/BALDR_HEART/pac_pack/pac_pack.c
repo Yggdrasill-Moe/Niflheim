@@ -160,6 +160,7 @@ void PackFile(char *fname)
 	FILE *src, *dst;
 	unit32 i, compsize;
 	unit8 *udata, *cdata, dstname[200];
+	wchar_t bname[5];
 	sprintf(pac_header.magic, "PAC\0");
 	pac_header.num = FileNum;
 	pac_header.mode = 4;
@@ -172,12 +173,22 @@ void PackFile(char *fname)
 	for (i = 0; i < pac_header.num; i++)
 	{
 		src = _wfopen(Index[i].name, L"rb");
+		wcscpy(bname, wcschr(Index[i].name, L'.') + 1);
 		udata = malloc(Index[i].FileSize);
 		cdata = malloc(Index[i].ComSize);
 		Index[i].Offset = ftell(dst);
 		fread(udata, 1, Index[i].FileSize, src);
-		compress2(cdata, &Index[i].ComSize, udata, Index[i].FileSize, Z_DEFAULT_COMPRESSION);
-		fwrite(cdata, 1, Index[i].ComSize, dst);
+		//mode = 4时，已知fnt、png文件不进行压缩，如果压缩了会无法读取
+		if (wcscmp(bname, L"fnt") == 0 || wcscmp(bname, L"png") == 0)
+		{
+			fwrite(udata, 1, Index[i].FileSize, dst);
+			Index[i].ComSize = Index[i].FileSize;
+		}
+		else
+		{
+			compress2(cdata, &Index[i].ComSize, udata, Index[i].FileSize, Z_DEFAULT_COMPRESSION);
+			fwrite(cdata, 1, Index[i].ComSize, dst);
+		}
 		free(cdata);
 		free(udata);
 		fclose(src);

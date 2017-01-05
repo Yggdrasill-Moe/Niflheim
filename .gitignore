@@ -53,6 +53,7 @@ ipch/
 *.opensdf
 *.sdf
 *.db
+*.opendb
 *.cachefile
 
 # Visual Studio profiler
