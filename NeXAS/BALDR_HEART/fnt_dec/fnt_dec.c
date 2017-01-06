@@ -33,8 +33,8 @@ struct header
 
 struct Font_Info
 {
-	unit16 x;
-	unit16 y;
+	short x;
+	short y;
 	unit16 width;
 	unit16 height;
 	unit32 offset;
@@ -68,18 +68,9 @@ void WritePng(FILE *pngfile, unit32 width, unit32 height, unit8* data)
 	src = data;
 	for (i = 0, k = 0; i < width*height * 2; i += 2, k++)
 	{
-		if (src[i + 1] == 0)
-		{
-			dst[k * 4 + 0] = 0;
-			dst[k * 4 + 1] = 0;
-			dst[k * 4 + 2] = 0;
-		}
-		else
-		{
-			dst[k * 4 + 0] = 0xFF;
-			dst[k * 4 + 1] = 0xFF;
-			dst[k * 4 + 2] = 0xFF;
-		}
+		dst[k * 4 + 0] = src[i];
+		dst[k * 4 + 1] = src[i];
+		dst[k * 4 + 2] = src[i];
 		dst[k * 4 + 3] = src[i + 1];
 	}
 	for (i = 0; i < height; i++)

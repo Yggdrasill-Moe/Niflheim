@@ -33,8 +33,8 @@ struct header
 
 struct Font_Info
 {
-	unit16 x;
-	unit16 y;
+	short x;
+	short y;
 	unit16 width;
 	unit16 height;
 	unit32 offset;
@@ -99,8 +99,8 @@ unit8* ReadIndex(char *fname,unit8* fntname,unit32 *savepos)
 			memcpy(&font_info[i].offset, &udata[i * 0x10 + 0xC], 4);
 			memcpy(&font_info[i].width, &udata[i * 0x10 + 0x4], 2);
 			memcpy(&font_info[i].height, &udata[i * 0x10 + 0x6], 2);
-			memcpy(&font_info[i].x, &udata[i * 0x10], 4);
-			memcpy(&font_info[i].y, &udata[i * 0x10 + 0x2], 4);
+			memcpy(&font_info[i].x, &udata[i * 0x10], 2);
+			memcpy(&font_info[i].y, &udata[i * 0x10 + 0x2], 2);
 		}
 	}
 	else
@@ -232,13 +232,14 @@ void WriteFntFile(char *fname)
 			memcpy(&udata[i * 0x10 + 0x6], &font_info[i].height, 2);
 			if (i >= 1577)
 			{
-				if (fgetws(data, 256, tbl_xy) != NULL)
-				{
-					wcsncpy(tbl_x, data, wcschr(data, L' ') - data);
-					wcscpy(tbl_y, wcschr(data, L' ') + 1);
-					font_info[i].x = (unit16)_wtoi(tbl_x);
-					font_info[i].y = (unit16)_wtoi(tbl_y);
-				}
+				if(tbl_xy!=NULL)
+					if (fgetws(data, 256, tbl_xy) != NULL)
+					{
+						wcsncpy(tbl_x, data, wcschr(data, L' ') - data);
+						wcscpy(tbl_y, wcschr(data, L' ') + 1);
+						font_info[i].x = (short)_wtoi(tbl_x);
+						font_info[i].y = (short)_wtoi(tbl_y);
+					}
 			}
 			memcpy(&udata[i * 0x10], &font_info[i].x, 2);
 			memcpy(&udata[i * 0x10 + 0x2], &font_info[i].y, 2);

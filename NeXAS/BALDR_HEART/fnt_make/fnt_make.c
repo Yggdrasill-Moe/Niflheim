@@ -103,7 +103,7 @@ GLYPHMETRICS FontGlyph(wchar_t chText, unit32 i)
 			GetGlyphOutline(hDC, chText, GGO_GRAY8_BITMAP, &gm, NeedSize, lpBuf, &mat2);
 			sprintf(dstname, "%08d.png", i);
 			FILE *fp = fopen(dstname, "wb");
-			wprintf(L"ch:%lc size:%d width:%d height:%d x:%d y:%d\n", chText, NeedSize, NeedSize / gm.gmBlackBoxY, gm.gmBlackBoxY, gm.gmptGlyphOrigin.x, ((int)gm.gmBlackBoxY - (int)gm.gmptGlyphOrigin.y) > 0 ? (gm.gmBlackBoxY - gm.gmptGlyphOrigin.y) : 0);
+			wprintf(L"ch:%lc size:%d width:%d height:%d x:%d y:%d\n", chText, NeedSize, NeedSize / gm.gmBlackBoxY, gm.gmBlackBoxY, gm.gmptGlyphOrigin.x, 24 - gm.gmptGlyphOrigin.y);
 			for (unit32 j = 0; j < NeedSize; j++)
 				if (lpBuf[j] == 0)
 					lpBuf[j] = 0;
@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
 		find = wcschr(data, L'=');
 		tbl = data[find - data + 1];
 		gm = FontGlyph(tbl, i);
-		fwprintf(tbl_xy, L"%d %d\n", gm.gmptGlyphOrigin.x, ((int)gm.gmBlackBoxY - (int)gm.gmptGlyphOrigin.y) > 0 ? (gm.gmBlackBoxY - gm.gmptGlyphOrigin.y) : 0);
+		fwprintf(tbl_xy, L"%d %d\n", gm.gmptGlyphOrigin.x, 24 - gm.gmptGlyphOrigin.y);
 		i++;
 	}
 	fclose(tbl_txt);
