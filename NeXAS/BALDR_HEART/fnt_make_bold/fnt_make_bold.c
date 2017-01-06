@@ -1,7 +1,7 @@
 /*
-用于生成fnt用的png
+用于生成fnt(描边类型)用的png
 made by Darkness-TX
-2016.12.20
+2017.01.06
 */
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
@@ -22,7 +22,7 @@ void WritePng(FILE *pngfile, unit32 width, unit32 height, unit8* data)
 	png_structp png_ptr;
 	png_infop info_ptr;
 	unit32 i = 0, k = 0;
-	unit8 *dst, *src;
+	unit8 *dst, *src, *odata, *udata, *ddata;
 	png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if (png_ptr == NULL)
 	{
@@ -41,26 +41,95 @@ void WritePng(FILE *pngfile, unit32 width, unit32 height, unit8* data)
 	png_write_info(png_ptr, info_ptr);
 	dst = malloc(width*height * 4);
 	src = data;
-	for (i = 0, k = 0; i < width*height; i++, k++)
+	odata = malloc(width*height);
+	udata = malloc(width*height);
+	ddata = malloc(width*height);
+	memcpy(odata, src, width*height);
+	memset(udata, 0, width*height);
+	memcpy(udata, src + width, width*height - width);
+	memset(ddata, 0, width*height);
+	memcpy(ddata + width, src, width*height - width);
+	for (i = 0; i < width*height; i++)
 	{
-		if (src[i] == 0)
+		if (udata[i] != 0xFF)
 		{
-			dst[k * 4 + 0] = 0;
-			dst[k * 4 + 1] = 0;
-			dst[k * 4 + 2] = 0;
+			if (ddata[i] != 0xFF)
+			{
+				if (udata[i] + ddata[i] >= 0xFF)
+					udata[i] = 0xFF;
+				else
+					udata[i] += ddata[i];
+			}
+			else
+				udata[i] = 0xFF;
 		}
-		else
+	}
+	for (i = 0; i < width*height; i++)
+	{
+		if (odata[i] != 0xFF)
 		{
-			dst[k * 4 + 0] = 0xFF;
-			dst[k * 4 + 1] = 0xFF;
-			dst[k * 4 + 2] = 0xFF;
+			if (udata[i] != 0xFF)
+			{
+				if (odata[i] + udata[i] >= 0xFF)
+					odata[i] = 0xFF;
+				else
+					odata[i] += udata[i];
+			}
+			else
+				odata[i] = 0xFF;
 		}
-		dst[k * 4 + 3] = src[i];
+	}
+	memset(udata, 0, width*height);
+	memset(ddata, 0, width*height);
+	for (i = 0; i < height; i++)
+	{
+		memcpy(udata + i * width, odata + i * width + 1, width - 1);
+		memcpy(ddata + i * width + 1, odata + i * width, width - 1);
+	}
+	for (i = 0; i < width*height; i++)
+	{
+		if (udata[i] != 0xFF)
+		{
+			if (ddata[i] != 0xFF)
+			{
+				if (udata[i] + ddata[i] >= 0xFF)
+					udata[i] = 0xFF;
+				else
+					udata[i] += ddata[i];
+			}
+			else
+				udata[i] = 0xFF;
+		}
+	}
+	for (i = 0; i < width*height; i++)
+	{
+		if (odata[i] != 0xFF)
+		{
+			if (udata[i] != 0xFF)
+			{
+				if (odata[i] + udata[i] >= 0xFF)
+					odata[i] = 0xFF;
+				else
+					odata[i] += udata[i];
+			}
+			else
+				odata[i] = 0xFF;
+		}
+	}
+	for (i = 0; i < width*height; i++)
+	{
+		dst[i * 4] = src[i];
+		dst[i * 4 + 1] = src[i];
+		dst[i * 4 + 2] = src[i];
+		dst[i * 4 + 3] = odata[i];
 	}
 	for (i = 0; i < height; i++)
 		png_write_row(png_ptr, dst + i*width * 4);
 	png_write_end(png_ptr, info_ptr);
 	png_destroy_write_struct(&png_ptr, &info_ptr);
+	free(odata);
+	free(udata);
+	free(ddata);
 	free(dst);
 }
 
@@ -127,7 +196,7 @@ GLYPHMETRICS FontGlyph(wchar_t chText, unit32 i)
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "chs");
-	printf("project：Niflheim-BALDR HEART\n用于生成fnt用的png。\n将码表txt文件拖到程序上。\nby Darkness-TX 2016.12.20\n\n");
+	printf("project：Niflheim-BALDR HEART\n用于生成fnt(描边类型)用的png。\n将码表txt文件拖到程序上。\nby Darkness-TX 2017.01.06\n\n");
 	unit32 slen, k = 0, i = 1577;
 	wchar_t tbl, data[256], *find;
 	FILE *tbl_xy = fopen("tbl_xy.txt", "wt,ccs=UNICODE");
