@@ -23,6 +23,8 @@ void WritePng(FILE *pngfile, unit32 width, unit32 height, unit8* data)
 	png_infop info_ptr;
 	unit32 i = 0, k = 0;
 	unit8 *dst, *src, *odata, *udata, *ddata;
+	height += 2;
+	width += 2;
 	png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if (png_ptr == NULL)
 	{
@@ -40,15 +42,21 @@ void WritePng(FILE *pngfile, unit32 width, unit32 height, unit8* data)
 	png_set_IHDR(png_ptr, info_ptr, width, height, 8, PNG_COLOR_TYPE_RGB_ALPHA, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
 	png_write_info(png_ptr, info_ptr);
 	dst = malloc(width*height * 4);
-	src = data;
+	src = malloc(width*height);
 	odata = malloc(width*height);
 	udata = malloc(width*height);
 	ddata = malloc(width*height);
-	memcpy(odata, src, width*height);
+	memset(src, 0, width*height);
+	memset(odata, 0, width*height);
 	memset(udata, 0, width*height);
-	memcpy(udata, src + width, width*height - width);
 	memset(ddata, 0, width*height);
-	memcpy(ddata + width, src, width*height - width);
+	for (i = 0; i < height - 2; i++)
+	{
+		memcpy(odata + width + i*width + 1, data + i*(width - 2), width - 2);
+		memcpy(src + width + i*width + 1, data + i*(width - 2), width - 2);
+	}
+	memcpy(udata, odata + width, width*height - width);
+	memcpy(ddata + width, odata, width*height - width);
 	for (i = 0; i < width*height; i++)
 	{
 		if (udata[i] != 0xFF)
@@ -83,8 +91,8 @@ void WritePng(FILE *pngfile, unit32 width, unit32 height, unit8* data)
 	memset(ddata, 0, width*height);
 	for (i = 0; i < height; i++)
 	{
-		memcpy(udata + i * width, odata + i * width + 1, width - 1);
-		memcpy(ddata + i * width + 1, odata + i * width, width - 1);
+		memcpy(udata + i * width, odata + i * width + 1, width - 2);
+		memcpy(ddata + i * width + 2, odata + i * width +1, width - 2);
 	}
 	for (i = 0; i < width*height; i++)
 	{
@@ -172,7 +180,7 @@ GLYPHMETRICS FontGlyph(wchar_t chText, unit32 i)
 			GetGlyphOutline(hDC, chText, GGO_GRAY8_BITMAP, &gm, NeedSize, lpBuf, &mat2);
 			sprintf(dstname, "%08d.png", i);
 			FILE *fp = fopen(dstname, "wb");
-			wprintf(L"ch:%lc size:%d width:%d height:%d x:%d y:%d\n", chText, NeedSize, NeedSize / gm.gmBlackBoxY, gm.gmBlackBoxY, gm.gmptGlyphOrigin.x, 24 - gm.gmptGlyphOrigin.y);
+			wprintf(L"ch:%lc size:%d width:%d height:%d x:%d y:%d\n", chText, NeedSize, NeedSize / gm.gmBlackBoxY, gm.gmBlackBoxY, gm.gmptGlyphOrigin.x - 1, 24 - gm.gmptGlyphOrigin.y - 1);
 			for (unit32 j = 0; j < NeedSize; j++)
 				if (lpBuf[j] == 0)
 					lpBuf[j] = 0;
@@ -210,7 +218,7 @@ int main(int argc, char *argv[])
 		find = wcschr(data, L'=');
 		tbl = data[find - data + 1];
 		gm = FontGlyph(tbl, i);
-		fwprintf(tbl_xy, L"%d %d\n", gm.gmptGlyphOrigin.x, 24 - gm.gmptGlyphOrigin.y);
+		fwprintf(tbl_xy, L"%d %d\n", gm.gmptGlyphOrigin.x - 1, 24 - gm.gmptGlyphOrigin.y - 1);
 		i++;
 	}
 	fclose(tbl_txt);
