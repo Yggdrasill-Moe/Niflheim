@@ -250,7 +250,7 @@ void WriteFntFile(char *fname)
 			memcpy(&udata[i * 0x10], &font_info[i].x, 2);
 			memcpy(&udata[i * 0x10 + 0x2], &font_info[i].y, 2);
 			memcpy(&udata[i * 0x10 + 0x8], &font_info[i].cell, 2);
-			printf("fntnum:%d width:%d height:%d fntoffset:0x%X x:%d y:%d\n", i, font_info[i].width, font_info[i].height, font_info[i].offset, font_info[i].x, font_info[i].y);
+			printf("fntnum:%d width:%d height:%d fntoffset:0x%X x:%d y:%d cell:%d\n", i, font_info[i].width, font_info[i].height, font_info[i].offset, font_info[i].x, font_info[i].y, font_info[i].cell);
 		}
 	}
 	else

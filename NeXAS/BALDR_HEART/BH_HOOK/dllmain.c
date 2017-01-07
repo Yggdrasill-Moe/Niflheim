@@ -1,10 +1,13 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include <windows.h>
+#include <stdio.h>
 #include <detours.h>
 
 typedef unsigned char  unit8;
 typedef unsigned short unit16;
 typedef unsigned int   unit32;
+
+unit16 *data;
 
 PVOID g_pOldCreateFontIndirectA = NULL;
 typedef int (WINAPI *PfuncCreateFontIndirectA)(LOGFONTA *lplf);
@@ -41,12 +44,7 @@ PVOID g_pOldGetGlyphOutlineW = NULL;
 typedef int (WINAPI *PfuncGetGlyphOutlineW)(HDC hdc, UINT uChar, UINT fuFormat, LPGLYPHMETRICS lpgm, DWORD cjBuffer, LPVOID pvBuffer, MAT2 *lpmat2);
 int WINAPI NewGetGlyphOutlineW(HDC hdc,UINT uChar,UINT fuFormat,LPGLYPHMETRICS lpgm,DWORD cjBuffer,LPVOID pvBuffer, MAT2* lpmat2)
 {
-	if (uChar == 0x8179)
-		uChar = 0xA1BE;
-	else if (uChar == 0x817A)
-		uChar = 0xA1BF;
-	else if (uChar == 0x8f7f)
-		uChar = 0xced2;
+	uChar = data[uChar];
 	return ((PfuncGetGlyphOutlineW)g_pOldGetGlyphOutlineW)(hdc, uChar, fuFormat, lpgm, cjBuffer, pvBuffer, lpmat2);
 }
 //±ß½ç¼ì²â
@@ -75,7 +73,10 @@ void EnumFontFamiliesAPatch()
 //°²×°Hook 
 BOOL APIENTRY SetHook()
 {
-
+	FILE *tbl = fopen("CHS.TBL", "rb");
+	data = malloc(0xF000 * 2);
+	fread(data, 1, 0xF000 * 2, tbl);
+	fclose(tbl);
 	DetourTransactionBegin();
 	DetourUpdateThread(GetCurrentThread());
 	g_pOldCreateFontIndirectA = DetourFindFunction("GDI32.dll", "CreateFontIndirectA");
@@ -86,7 +87,7 @@ BOOL APIENTRY SetHook()
 	DetourAttach(&g_pOldGetGlyphOutlineW, NewGetGlyphOutlineW);
 	//g_pOldCreateFontA = DetourFindFunction("kernel32.dll", "MultiByteToWideChar");
 	//DetourAttach(&g_pOldMultiByteToWideChar, NewMultiByteToWideChar);
-	BorderPatch();
+	//BorderPatch();
 	EnumFontFamiliesAPatch();
 	LONG ret = DetourTransactionCommit();
 	return ret == NO_ERROR;
@@ -95,6 +96,7 @@ BOOL APIENTRY SetHook()
 //Ð¶ÔØHook
 BOOL APIENTRY DropHook()
 {
+	free(data);
 	DetourTransactionBegin();
 	DetourUpdateThread(GetCurrentThread());
 	DetourDetach(&g_pOldCreateFontIndirectA, NewCreateFontIndirectA);
