@@ -103,7 +103,7 @@ GLYPHMETRICS FontGlyph(wchar_t chText, unit32 i)
 			GetGlyphOutline(hDC, chText, GGO_GRAY8_BITMAP, &gm, NeedSize, lpBuf, &mat2);
 			sprintf(dstname, "%08d.png", i);
 			FILE *fp = fopen(dstname, "wb");
-			wprintf(L"ch:%lc size:%d width:%d height:%d x:%d y:%d\n", chText, NeedSize, NeedSize / gm.gmBlackBoxY, gm.gmBlackBoxY, gm.gmptGlyphOrigin.x, 24 - gm.gmptGlyphOrigin.y);
+			wprintf(L"ch:%lc size:%d width:%d height:%d x:%d y:%d cell:%d\n", chText, NeedSize, NeedSize / gm.gmBlackBoxY, gm.gmBlackBoxY, gm.gmptGlyphOrigin.x, 24 - gm.gmptGlyphOrigin.y, gm.gmCellIncX);
 			for (unit32 j = 0; j < NeedSize; j++)
 				if (lpBuf[j] == 0)
 					lpBuf[j] = 0;
@@ -131,6 +131,7 @@ int main(int argc, char *argv[])
 	unit32 slen, k = 0, i = 1577;
 	wchar_t tbl, data[256], *find;
 	FILE *tbl_xy = fopen("tbl_xy.txt", "wt,ccs=UNICODE");
+	FILE *tbl_cell = fopen("tbl_cell.txt", "wt,ccs=UNICODE");
 	FILE *tbl_txt = fopen(argv[1], "rt,ccs=UNICODE");
 	GLYPHMETRICS gm;
 	_mkdir("tbl_fnt");
@@ -142,10 +143,12 @@ int main(int argc, char *argv[])
 		tbl = data[find - data + 1];
 		gm = FontGlyph(tbl, i);
 		fwprintf(tbl_xy, L"%d %d\n", gm.gmptGlyphOrigin.x, 24 - gm.gmptGlyphOrigin.y);
+		fwprintf(tbl_cell, L"%d\n", gm.gmCellIncX);
 		i++;
 	}
 	fclose(tbl_txt);
 	fclose(tbl_xy);
+	fclose(tbl_cell);
 	system("pause");
 	return 0;
 }

@@ -33,11 +33,12 @@ struct header
 
 struct Font_Info
 {
-	short x;
-	short y;
 	unit16 width;
 	unit16 height;
 	unit32 offset;
+	short x;
+	short y;
+	unit16 cell;
 }font_info[10000];
 
 unit32 font_count = 0;
@@ -101,6 +102,7 @@ unit8* ReadIndex(char *fname,unit8* fntname,unit32 *savepos)
 			memcpy(&font_info[i].height, &udata[i * 0x10 + 0x6], 2);
 			memcpy(&font_info[i].x, &udata[i * 0x10], 2);
 			memcpy(&font_info[i].y, &udata[i * 0x10 + 0x2], 2);
+			memcpy(&font_info[i].cell, &udata[i * 0x10 + 0x8], 2);
 		}
 	}
 	else
@@ -158,7 +160,7 @@ unit8* ReadIndex(char *fname,unit8* fntname,unit32 *savepos)
 
 void WriteFntFile(char *fname)
 {
-	FILE *src, *dst, *tbl_xy;
+	FILE *src, *dst, *tbl_xy, *tbl_cell;
 	unit8 *udata, *cdata, *pdata, *bdata, dstname[200], fntname[32];
 	unit32 savepos, width, height, i, k, offset = 0;
 	wchar_t data[256], tbl_x[5], tbl_y[5];
@@ -166,6 +168,7 @@ void WriteFntFile(char *fname)
 	sprintf(dstname, "%s_new", fname);
 	dst = fopen(dstname, "wb");
 	tbl_xy = fopen("tbl_xy.txt", "rt,ccs=UNICODE");
+	tbl_cell = fopen("tbl_cell.txt", "rt,ccs=UNICODE");
 	sprintf(dstname, "%s_unpack", fname);
 	_chdir(dstname);
 	for (i = 0; i < font_count; i++)
@@ -232,7 +235,7 @@ void WriteFntFile(char *fname)
 			memcpy(&udata[i * 0x10 + 0x6], &font_info[i].height, 2);
 			if (i >= 1577)
 			{
-				if(tbl_xy!=NULL)
+				if(tbl_xy != NULL)
 					if (fgetws(data, 256, tbl_xy) != NULL)
 					{
 						wcsncpy(tbl_x, data, wcschr(data, L' ') - data);
@@ -240,9 +243,13 @@ void WriteFntFile(char *fname)
 						font_info[i].x = (short)_wtoi(tbl_x);
 						font_info[i].y = (short)_wtoi(tbl_y);
 					}
+				if(tbl_cell != NULL)
+					if (fgetws(data, 256, tbl_cell) != NULL)
+						font_info[i].cell = (unit16)_wtoi(data);
 			}
 			memcpy(&udata[i * 0x10], &font_info[i].x, 2);
 			memcpy(&udata[i * 0x10 + 0x2], &font_info[i].y, 2);
+			memcpy(&udata[i * 0x10 + 0x8], &font_info[i].cell, 2);
 			printf("fntnum:%d width:%d height:%d fntoffset:0x%X x:%d y:%d\n", i, font_info[i].width, font_info[i].height, font_info[i].offset, font_info[i].x, font_info[i].y);
 		}
 	}
