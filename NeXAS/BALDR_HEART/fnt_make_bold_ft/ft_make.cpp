@@ -22,11 +22,11 @@ bool FT_Make::FT_Init(string font_path, DWORD font_height)
 	error = FT_Init_FreeType(&library);
 	if (error)
 	{
-		cout<<"Init_FreeType Error!\n";
+		cout << "Init_FreeType Error!\n";
 		return false;
 	}
 	cout << "read ttf...\n";
-	error = FT_New_Memory_Face(library,(BYTE *)buff, filesize, 0, &face);
+	error = FT_New_Memory_Face(library, (BYTE *)buff, filesize, 0, &face);
 	if (error)
 	{
 		cout << "New_Memory_Face Error!\n";
@@ -41,8 +41,8 @@ bool FT_Make::FT_Init(string font_path, DWORD font_height)
 	/*error = FT_Set_Pixel_Sizes(face, 0, font_height);
 	if (error)
 	{
-		cout << "Set_Pixel_Sizes Error!\n";
-		return false;
+	cout << "Set_Pixel_Sizes Error!\n";
+	return false;
 	}*/
 	return true;
 }

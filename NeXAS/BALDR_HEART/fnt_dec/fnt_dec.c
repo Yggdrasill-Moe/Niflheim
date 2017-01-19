@@ -114,7 +114,7 @@ void ReadIndex(FILE *src, char *fname)
 	fread(&fnt_header.width, 1, 4, src);
 	fread(&fnt_header.height, 1, 4, src);
 	fread(&fnt_header.decompsize, 1, 4, src);
-	if (fnt_header.decompsize == 0xFFFF00 || fnt_header.decompsize == 0xFFFF01)
+	if (fnt_header.decompsize == 0xFFFF00 || fnt_header.decompsize == 0xFFFF01 || fnt_header.decompsize == 0x1FFFF00)
 	{
 		fnt_header.seekflag = fnt_header.decompsize;
 		fseek(src, 9, SEEK_CUR);
