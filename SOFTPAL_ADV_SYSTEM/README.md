@@ -7,6 +7,10 @@ https://github.com/Inori/FuckGalEngine/tree/master/PAC
 pgd2png、png2pgd
 crass源码
 ##[New]
+ver 0.7
+支持处理字库，配合Longinus可实现自制字库与API的显示方式切换
+添加日文码表，不过E000开始后似乎有错但不影响汉化，
+因为用不上那么多字
 ver 0.2
 支持文本脚本简单导入导出，可实现超长汉化
 ver 0.1
