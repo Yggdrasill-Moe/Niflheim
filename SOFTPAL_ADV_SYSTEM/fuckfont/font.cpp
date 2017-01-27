@@ -156,7 +156,7 @@ BYTE* FONT::makefont(WCHAR chText, DWORD i)
 	}
 	else
 	{
-		printf("所需大小错误！ size:0x%X\n index:%d", NeedSize, i);
+		printf("所需大小错误！ size:0x%X index:%d\n", NeedSize, i);
 		exit(0);
 	}
 	DeleteObject(hFont);
