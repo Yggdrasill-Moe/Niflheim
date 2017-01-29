@@ -7,6 +7,9 @@ https://github.com/Inori/FuckGalEngine/tree/master/PAC
 pgd2png、png2pgd
 crass源码
 ##[New]
+ver 0.9
+增加制作封包功能但有些字节不明白其意义，
+所以这些部分全补零，不建议使用这功能
 ver 0.7
 支持处理字库，配合Longinus可实现自制字库与API的显示方式切换
 添加日文码表，不过E000开始后似乎有错但不影响汉化，

@@ -3,6 +3,7 @@
 #include <windows.h>
 #include <vector>
 #include <string>
+#include <io.h>
 #include <direct.h>
 
 using namespace std;
@@ -14,7 +15,6 @@ typedef struct header_s
 	BYTE sig[4]; //PAC\x20
 	DWORD uk;
 	DWORD filenum;
-
 } header_t;
 
 typedef struct findex_s
@@ -22,7 +22,6 @@ typedef struct findex_s
 	char filename[32];
 	DWORD size;
 	DWORD offset;
-
 } findex_t;
 typedef struct eof_s
 {
@@ -41,6 +40,7 @@ public:
 	bool ReadIndex(string pacname);
 	bool pacexport();
 	bool pacpack();
+	bool pacmake(FILE* in);
 	void decrypt(BYTE* data, DWORD size);
 	void encrypt(BYTE* data, DWORD size);
 	vector<findex_t> findexs;

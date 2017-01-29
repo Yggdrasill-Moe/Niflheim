@@ -6,7 +6,7 @@ int main(int agrc, char* agrv[])
 {
 	cout << "project：Niflheim-SOFTPAL_ADV_SYSTEM\n用于解包及封包pac；\n用于加密解密文件（仅支持文件首字符为$）。\nby Destinyの火狐 2016.12.21\n";
 	if (agrc != 3)
-		cout << "\nUsage:\n\texport:\texe -e pacfile\n\tpack:\texe -p oldpacfile\n\tdec:\texe -de file\n\tenc:\texe -en file\n";
+		cout << "\nUsage:\n\texport:\texe -e pacfile\n\tpack:\texe -p oldpacfile\n\tmake:\texe -m folder\n\tdec:\texe -de file\n\tenc:\texe -en file\n";
 	else
 	{
 		if (strcmp(agrv[1],"-e")==0)
@@ -29,6 +29,17 @@ int main(int agrc, char* agrv[])
 				printf("name:%s offset:0x%X size:0x%X\n", pac.findexs[i].filename, pac.findexs[i].offset, pac.findexs[i].size);
 			cout << "\npack...\n";
 			if (pac.pacpack())
+				printf("all %d files pack\n", pac.filenum);
+			else
+				cout << "封包失败！\n";
+		}
+		else if (strcmp(agrv[1], "-m") == 0)
+		{
+			PAC pac;
+			string filename = agrv[2];
+			FILE *in = fopen((filename + ".pac").c_str(), "wb");
+			_chdir(agrv[2]);
+			if(pac.pacmake(in))
 				printf("all %d files pack\n", pac.filenum);
 			else
 				cout << "封包失败！\n";
