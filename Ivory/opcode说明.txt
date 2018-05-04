@@ -1,0 +1,148 @@
+基于fil004.hk2，cCOD块解析
+头部,实际使用时不加上头部偏移:
+0x0 cCOD
+0x4 块大小 0x1250
+0x8 头大小 0x1c
+0xc 脚本大小 0x1008
+0x10 seed，解密用 0x28ec
+0x14 不知道 0x21
+0x18 含有文本的opcode组数 0x92
+
+文本相关对应在cTEX，资源相关在cFNM，指令相关在cCOD
+如果有值是ffffffff，好像是重置的意思
+
+short 类型：01，旁白文本，显示
+short opcode长度（0c）
+int 文本编号
+int 文本偏移
+
+short 类型：02，对话，有人名的那种，显示
+short opcode长度（14）
+int 编号
+int 人名偏移？
+int 文本偏移
+int 资源偏移（语音）
+
+short 类型：03，bgm，不显示
+short opcode长度（14）
+int 不知道（ffffffff）
+int 资源偏移（bgm）
+int 不知道（3333333f）
+int 不知道（3f800000）
+
+short 类型：04，不知道
+short opcode长度（0c）
+int 不知道（ffffffff）
+int 不知道（40400000）
+
+short 类型：05，效果音
+short opcode长度（0c）
+int 资源偏移（效果音）
+int 不知道（ffffffff）
+
+short 类型：06，转场效果和背景，显示
+short opcode长度（0c）
+int 资源偏移（背景）
+int 启动转场效果？（00启动）
+
+short 类型：07，感觉同06，好像有一些图片信息参数
+short opcode长度（1c）
+int 资源偏移（背景）
+int 不知道（00）
+int 不知道（01e00000）
+int 不知道（40000000）
+int 不知道（40900000）
+int 不知道（00）
+
+short 类型：09，选择支，显示
+short opcode长度（28）
+int 编号
+int 不知道（00）
+int 选择支数？（02）
+int 不知道（00）
+int 选择支1的文本偏移
+int 此选择支的脚本偏移
+int 不知道（00）
+int 选择支2的文本偏移
+int 此选择支的脚本偏移
+
+short 类型：0a，跳转指令
+short opcode长度（08）
+int 指令偏移
+
+short 类型：0b，跳转到文件指令
+short opcode长度（08）
+short 文件名所在资源偏移
+short 不知道（ff00）
+
+short 类型：0d，跳转指令
+short opcode长度（14）
+int 不知道（02415453）
+int 不知道（00）
+int 不知道（00）
+int 指令偏移
+
+short 类型：10，不知道
+short opcode长度（08）
+int 不知道（3f000000）
+
+short 类型：14，跳转指令
+short opcode长度（10）
+int 不知道（02435348）
+int 不知道（05）
+int 不知道（3f800000）
+
+short 类型：1a，不知道
+short opcode长度（20）
+int 不知道（0000000）
+int 不知道（41800000）
+int 不知道（3e0f8c29）
+int 不知道（04）
+int 不知道（ffffffff）
+int 不知道（ffffffff）
+int 不知道（ffffffff）
+
+short 类型：1c，一种效果
+short opcode长度（08）
+int 不知道（3ecccccd）
+
+short 类型：1d，好像是标题
+short opcode长度（08）
+int 不知道（ffffffff）
+
+short 类型：20，同06？，显示
+short opcode长度（0c）
+int 资源偏移（背景）
+int 启动转场效果？（00启动）
+
+short 类型：24，控制对话框的显示
+short opcode长度（08）
+int 是否不显示对话框？01不显示，00显示
+
+short 类型：28，好像记录些什么
+short opcode长度（10）
+int 资源偏移（一个格式化字符串001/%02d）
+int 编号？
+int 不知道（0a）
+
+short 类型：29，不知道
+short opcode长度（0c）
+int 不知道（03）
+int 不知道（01）
+
+short 类型：2f，好像是标题，显示在选项里，不显示
+short opcode长度（08）
+int 文本偏移（00）
+
+short 类型：35，好像是标题
+short opcode长度（08）
+int 文本编号？（00）指向文本偏移00
+
+short 类型：3b，立绘，显示
+short opcode长度（10）
+int 资源偏移（立绘）
+int 不知道（ffffffff）
+int 不知道（ffffffff）
+
+short 类型：45，似乎是启动什么
+short opcode长度（04）
