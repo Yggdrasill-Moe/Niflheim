@@ -34,7 +34,7 @@ struct ALD_Index
 	unit32 unk1;
 	unit32 unk2;
 	unit8 filename[32];
-}ald_index[5000];
+}ald_index[50000];
 
 unit32 ReadIndex(FILE *src)
 {
