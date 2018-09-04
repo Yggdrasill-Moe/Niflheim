@@ -1,7 +1,7 @@
 /*
-用于解包文件头为CPZ7的cpz文件
+用于解包文件头为CPZ6的cpz文件
 made by Darkness-TX
-2018.04.19
+2018.09.04
 */
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
@@ -13,7 +13,6 @@ made by Darkness-TX
 #include <locale.h>
 #include "MD5.h"
 #include "cmvs_md5.h"
-#include "HuffmanDecoder.h"
 
 typedef unsigned char  unit8;
 typedef unsigned short unit16;
@@ -24,7 +23,7 @@ unit32 FileNum = 0;//总文件数，初始计数为0
 
 struct cpz_header
 {
-	unit32 Magic;//CPZ7
+	unit32 Magic;//CPZ6
 	unit32 DirCount;
 	unit32 DirIndexLength;
 	unit32 FileIndexLength;
@@ -33,21 +32,15 @@ struct cpz_header
 	unit32 IndexKey;
 	unit32 IsEncrypt;//1
 	unit32 IndexSeed;
-	unit32 unk;
-	unit32 IndexKeySize;
 	unit32 HeaderCRC;
 }CPZ_Header;
 
 typedef struct cpz_file_index
 {
 	unit32 IndexLength;
-	//unit64是预留的，反正现在的版本中还是mov eax, dword ptr [esi+0xC]...........
-	//unit64 Offset;
 	unit32 Offset;
 	unit32 unk1;
-	//unit64 Length;
 	unit32 Length;
-	unit32 unk2;
 	unit32 CRC;
 	unit32 FileKey;
 	LPWSTR FileName;
@@ -117,43 +110,22 @@ void CPZHeaderDecrypt()
 
 	cmvs_md5_ctx CTX;
 	cmvs_md5(CPZ_Header.Md5Data, &CTX);
-	CPZ_Header.Md5Data[0] ^= 0x53A76D2E;
-	CPZ_Header.Md5Data[1] += 0x5BB17FDA;
-	CPZ_Header.Md5Data[2] += 0x6853E14D;
-	CPZ_Header.Md5Data[3] ^= 0xF5C6A9A3;
-	CPZ_Header.IndexKeySize ^= 0x65EF99F3;
+	CPZ_Header.Md5Data[0] ^= 0x45A76C2F;
+	CPZ_Header.Md5Data[1] -= 0x5BA17FCB;
+	CPZ_Header.Md5Data[2] ^= 0x79ABE8AD;
+	CPZ_Header.Md5Data[3] -= 0x1C08561B;
 }
 
 BOOL IndexVerify(unit8 *data, unit32 len)
 {
-	unit32 verify[4], verify_indexkey[4];
+	unit32 verify[4];
 	MD5_CTX CTX;
 	MD5Init(&CTX);
 	MD5Update(&CTX, data, len);
 	MD5Final((unit8 *)verify, &CTX);
 	if (CPZ_Header.IndexVerify[0] != verify[0] || CPZ_Header.IndexVerify[1] != verify[1] || CPZ_Header.IndexVerify[2] != verify[2] || CPZ_Header.IndexVerify[3] != verify[3])
 		return FALSE;
-	MD5Init(&CTX);
-	MD5Update(&CTX, data + CPZ_Header.DirIndexLength + CPZ_Header.FileIndexLength + 0x10, CPZ_Header.IndexKeySize - 0x10);
-	MD5Final((unit8 *)verify, &CTX);
-	memcpy(verify_indexkey, data + CPZ_Header.DirIndexLength + CPZ_Header.FileIndexLength, 0x10);
-	if (verify_indexkey[0] != verify[0] || verify_indexkey[1] != verify[1] || verify_indexkey[2] != verify[2] || verify_indexkey[3] != verify[3])
-		return FALSE;
 	return TRUE;
-}
-
-unit8* UnpackIndexKey(unit8 *srcdata, unit32 offset, unit32 length)
-{
-	unit32 key_offset = offset + 0x14;
-	unit32 packed_offset = offset + 0x18;
-	unit32 packed_length = length - 0x18;
-	unit32 unpacked_length = *(unit32 *)&srcdata[offset + 0x10];
-	unit32 i = 0;
-	for (i = 0; i < packed_length; i++)
-		srcdata[packed_offset + i] ^= srcdata[key_offset + (i & 3)];//其实就是key_offset那的4字节循环异或
-	unit8 *dstdata = malloc(unpacked_length);
-	HuffmanDecoder(srcdata, packed_offset, packed_length, unpacked_length, dstdata);
-	return dstdata;
 }
 
 unit32* GetIndexTable1(unit32 IndexKey)
@@ -368,10 +340,10 @@ void ReadFileIndex(unit8 *data)
 		while (i < q->FileIndexLength)
 		{
 			FileNum++;
-			memcpy(p, data + q->FileIndexOffset + CPZ_Header.DirIndexLength + i, 0x1C);
+			memcpy(p, data + q->FileIndexOffset + CPZ_Header.DirIndexLength + i, 0x18);
 			p->FileName = malloc(100 * 2);
 			memset(p->FileName, 0, 100 * 2);
-			MultiByteToWideChar(932, 0, data + q->FileIndexOffset + CPZ_Header.DirIndexLength + i + 0x1C, strlen(data + q->FileIndexOffset + CPZ_Header.DirIndexLength + i + 0x1C), p->FileName, MAX_PATH);
+			MultiByteToWideChar(932, 0, data + q->FileIndexOffset + CPZ_Header.DirIndexLength + i + 0x18, strlen(data + q->FileIndexOffset + CPZ_Header.DirIndexLength + i + 0x18), p->FileName, MAX_PATH);
 			i += p->IndexLength;
 			if (i < q->FileIndexLength)
 			{
@@ -385,24 +357,24 @@ void ReadFileIndex(unit8 *data)
 unit8* ReadIndex(FILE *src)
 {
 	unit32 IndexSize = 0, i = 0;
-	unit8 *data, *index_key;
+	unit8 *data;
 	fread(&CPZ_Header, sizeof(CPZ_Header), 1, src);
-	if (CPZ_Header.Magic != 0x375A5043)
+	if (CPZ_Header.Magic != 0x365A5043)
 	{
 		fclose(src);
-		printf("文件头不是CPZ7！\n");
+		printf("文件头不是CPZ6！\n");
 		system("pause");
 		exit(0);
 	}
-	unit32 InitCheckcrc = CPZ_Header.IndexKeySize - 0x6DC5A9B4;
-	if (CPZ_Header.HeaderCRC != CheckCRC((unit8 *)&CPZ_Header, 0x40, InitCheckcrc))
+	unit32 InitCheckcrc = 0x923A564C;
+	if (CPZ_Header.HeaderCRC != CheckCRC((unit8 *)&CPZ_Header, 0x3C, InitCheckcrc))
 	{
 		printf("验证不通过，请检查文件头是否损坏或是不支持的文件类型。\n");
 		system("pause");
 		exit(0);
 	}
 	CPZHeaderDecrypt();
-	IndexSize = CPZ_Header.DirIndexLength + CPZ_Header.FileIndexLength + CPZ_Header.IndexKeySize;
+	IndexSize = CPZ_Header.DirIndexLength + CPZ_Header.FileIndexLength;
 	data = malloc(IndexSize);
 	fread(data, IndexSize, 1, src);
 	if (!IndexVerify(data, IndexSize))
@@ -411,10 +383,6 @@ unit8* ReadIndex(FILE *src)
 		system("pause");
 		exit(0);
 	}
-	index_key = UnpackIndexKey(data, CPZ_Header.DirIndexLength + CPZ_Header.FileIndexLength, CPZ_Header.IndexKeySize);
-	for (i = 0; i < CPZ_Header.DirIndexLength + CPZ_Header.FileIndexLength; i++)
-		data[i] ^= index_key[(i + 3) % 0x3FF];
-	free(index_key);
 	CPZIndexDecrypt1(data, CPZ_Header.DirIndexLength + CPZ_Header.FileIndexLength, CPZ_Header.IndexKey);
 	CPZIndexDecrypt2(data, CPZ_Header.DirIndexLength, CPZ_Header.IndexKey, CPZ_Header.Md5Data[1]);
 	unit32 *Key = GetIndexKey3();
@@ -479,11 +447,11 @@ void UnpackFile(char* fname)
 		{
 			wprintf(L"\t%s offset:0x%X size:0x%X file_key:0x%X crc:0x%X\n", p->FileName, p->Offset, p->Length, p->FileKey, p->CRC);
 			wsprintfW(filename, L"%ls/%ls", q->DirName, p->FileName);
-			fseek(src, p->Offset + sizeof(CPZ_Header) + CPZ_Header.DirIndexLength + CPZ_Header.FileIndexLength + CPZ_Header.IndexKeySize, SEEK_SET);
+			fseek(src, p->Offset + sizeof(CPZ_Header) + CPZ_Header.DirIndexLength + CPZ_Header.FileIndexLength, SEEK_SET);
 			data = malloc(p->Length);
 			fread(data, p->Length, 1, src);
 			if (CPZ_Header.IsEncrypt)
-				CPZResourceDecrypt(data, p->Length, CPZ_Header.IndexKey, CPZ_Header.Md5Data, CPZ_Header.IndexSeed ^ ((CPZ_Header.IndexKey ^ (q->DirKey + p->FileKey)) + CPZ_Header.DirCount + 0xa3c61785));
+				CPZResourceDecrypt(data, p->Length, CPZ_Header.IndexKey, CPZ_Header.Md5Data, CPZ_Header.IndexSeed ^ ((CPZ_Header.IndexKey ^ (q->DirKey + p->FileKey)) + CPZ_Header.DirCount + 0xa3d61785));
 			dst = _wfopen(filename, L"wb");
 			fwrite(data, p->Length, 1, dst);
 			fclose(dst);
@@ -497,7 +465,7 @@ void UnpackFile(char* fname)
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "chs");
-	printf("project：Niflheim-cmvs\n用于解包文件头为CPZ7的cpz文件。\n将cpz文件拖到程序上。\nby Darkness-TX 2018.04.19\n\n");
+	printf("project：Niflheim-cmvs\n用于解包文件头为CPZ6的cpz文件。\n将cpz文件拖到程序上。\nby Darkness-TX 2018.09.04\n\n");
 	UnpackFile(argv[1]);
 	printf("已完成，总文件数%d\n", FileNum);
 	system("pause");
