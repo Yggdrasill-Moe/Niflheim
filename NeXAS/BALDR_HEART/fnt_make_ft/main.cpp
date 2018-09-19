@@ -1,77 +1,33 @@
 #include "ft_make.h"
-#include <stdio.h>
-#include <direct.h>
-#include <locale.h>
-#include <png.h>
-
-typedef unsigned char  unit8;
-typedef unsigned short unit16;
-typedef unsigned int   unit32;
-
-void WritePng(FILE *pngfile, unit32 width, unit32 height, unit8* data)
-{
-	png_structp png_ptr;
-	png_infop info_ptr;
-	unit32 i = 0, k = 0;
-	unit8 *dst, *src;
-	png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-	if (png_ptr == NULL)
-	{
-		printf("PNG信息创建失败!\n");
-		exit(0);
-	}
-	info_ptr = png_create_info_struct(png_ptr);
-	if (info_ptr == NULL)
-	{
-		printf("info信息创建失败!\n");
-		png_destroy_write_struct(&png_ptr, (png_infopp)NULL);
-		exit(0);
-	}
-	png_init_io(png_ptr, pngfile);
-	png_set_IHDR(png_ptr, info_ptr, width, height, 8, PNG_COLOR_TYPE_RGB_ALPHA, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
-	png_write_info(png_ptr, info_ptr);
-	dst = new unit8[width*height * 4];
-	src = data;
-	for (i = 0, k = 0; i < width*height; i++, k++)
-	{
-		if (src[i] == 0)
-		{
-			dst[k * 4 + 0] = 0;
-			dst[k * 4 + 1] = 0;
-			dst[k * 4 + 2] = 0;
-		}
-		else
-		{
-			dst[k * 4 + 0] = 0xFF;
-			dst[k * 4 + 1] = 0xFF;
-			dst[k * 4 + 2] = 0xFF;
-		}
-		dst[k * 4 + 3] = src[i];
-	}
-	for (i = 0; i < height; i++)
-		png_write_row(png_ptr, dst + i*width * 4);
-	png_write_end(png_ptr, info_ptr);
-	png_destroy_write_struct(&png_ptr, &info_ptr);
-	delete[] dst;
-}
 
 int main(int agrc, char* agrv[])
 {
 	setlocale(LC_ALL, "chs");
-	wprintf(L"project：Niflheim-BALDR HEART\n用于生成fnt用的png。\n将码表txt文件拖到程序上。\nby Destinyの火狐 2017.01.19\n");
-	if (agrc != 2)
-		wprintf(L"\nUsage:fnt_make_bold_ft txtfile\n");
+	wprintf(L"project：Niflheim-BALDR HEART\n用于生成fnt用的png。\n将码表txt文件拖到程序上。\nby Destinyの火狐 2017.01.19\n\n");
+	if (agrc != 3)
+		wprintf(L"Usage:fnt_make_ft txtfile fnttype\n      fnt_make_ft tbl_chs.txt 12ss\n");
 	else
 	{
-		unit32 slen, k = 0, i = 1577;
-		char dstname[200];
+		char dirPath[MAX_PATH];
+		char iniPath[MAX_PATH];
+		GetCurrentDirectoryA(MAX_PATH, dirPath);
+		wsprintfA(iniPath, "%s\\%s", dirPath, "fnt_make.ini");
+		if (_access(iniPath, 4) == -1)
+		{
+			wprintf(L"fnt_make.ini文件不存在！");
+			exit(0);
+		}
+		DWORD slen, k = 0, i = 1577, height = 0;
+		char dstname[200], buff[256];
 		wchar_t tbl, data[256], *find;
 		FILE *tbl_xy = fopen("tbl_xy.txt", "wt,ccs=UNICODE");
 		FILE *tbl_cell = fopen("tbl_cell.txt", "wt,ccs=UNICODE");
 		FILE *tbl_txt = fopen(agrv[1], "rt,ccs=UNICODE");
 		FILE *pngfile;
 		_mkdir("tbl_fnt");
-		FT_Make ft("simhei.ttf", 24);
+		GetPrivateProfileStringA(agrv[2], "Font", "SourceHanSansCN-Medium.otf", buff, 100, iniPath);
+		height = GetPrivateProfileIntA(agrv[2], "Height", 0, iniPath);
+		FT_Make ft(buff, height);
 		_chdir("tbl_fnt");
 		CharBitmap cb;
 		while (fgetws(data, 256, tbl_txt) != NULL)
@@ -79,12 +35,19 @@ int main(int agrc, char* agrv[])
 			slen = wcslen(data);
 			find = wcschr(data, L'=');
 			tbl = data[find - data + 1];
+			if (tbl == 0x0A)
+			{
+				i++;
+				fwprintf(tbl_xy, L"%d %d\n", height / 2, height / 2);
+				fwprintf(tbl_cell, L"%d\n", height);
+				continue;
+			}
 			cb = ft.GetCharBitmap(tbl);
 			sprintf(dstname, "%08d.png", i);
 			pngfile = fopen(dstname, "wb");
 			WritePng(pngfile, cb.bmp_width, cb.bmp_height, cb.bmpBuffer);
-			wprintf(L"ch:%lc size:%d width:%d height:%d x:%d y:%d cell:%d\n", tbl, cb.bmp_width*cb.bmp_height, cb.bmp_width, cb.bmp_height, cb.bearingX, 24 - cb.bearingY, cb.Advance);
-			fwprintf(tbl_xy, L"%d %d\n", cb.bearingX, 24 - cb.bearingY);
+			wprintf(L"ch:%lc size:%d width:%d height:%d x:%d y:%d cell:%d\n", tbl, cb.bmp_width * cb.bmp_height, cb.bmp_width, cb.bmp_height, cb.bearingX + GetPrivateProfileIntA(agrv[2], "X_mod", 0, iniPath), height - cb.bearingY + GetPrivateProfileIntA(agrv[2], "Y_fix", 0, iniPath), cb.Advance);
+			fwprintf(tbl_xy, L"%d %d\n", cb.bearingX + GetPrivateProfileIntA(agrv[2], "X_mod", 0, iniPath), height - cb.bearingY + GetPrivateProfileIntA(agrv[2], "Y_fix", 0, iniPath));
 			fwprintf(tbl_cell, L"%d\n", cb.Advance);
 			i++;
 			fclose(pngfile);

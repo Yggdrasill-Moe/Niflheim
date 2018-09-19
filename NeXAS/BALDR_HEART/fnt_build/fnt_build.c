@@ -33,11 +33,11 @@ struct header
 
 struct Font_Info
 {
+	short x;
+	short y;
 	unit16 width;
 	unit16 height;
 	unit32 offset;
-	short x;
-	short y;
 	unit16 cell;
 }font_info[10000];
 
@@ -80,7 +80,7 @@ unit8* ReadIndex(char *fname,unit8* fntname,unit32 *savepos)
 	fread(&fnt_header.height, 1, 4, src);
 	*savepos = ftell(src);
 	fread(&fnt_header.decompsize, 1, 4, src);
-	if (fnt_header.decompsize == 0xFFFF00 || fnt_header.decompsize == 0xFFFF01)
+	if ((fnt_header.decompsize & 0xFFFF00) == 0xFFFF00)
 	{
 		fnt_header.seekflag = fnt_header.decompsize;
 		fseek(src, 9, SEEK_CUR);
@@ -221,7 +221,7 @@ void WriteFntFile(char *fname)
 	}
 	fwrite(&fnt_header.width, 1, 4, dst);
 	fwrite(&fnt_header.height, 1, 4, dst);
-	if (fnt_header.seekflag == 0xFFFF00 || fnt_header.seekflag == 0xFFFF01)
+	if ((fnt_header.seekflag & 0xFFFF00) == 0xFFFF00)
 	{
 		fwrite(&fnt_header.seekflag, 1, 4, dst);
 		fseek(dst, 9, SEEK_CUR);
@@ -238,6 +238,8 @@ void WriteFntFile(char *fname)
 				if(tbl_xy != NULL)
 					if (fgetws(data, 256, tbl_xy) != NULL)
 					{
+						memset(tbl_x, 0, 5 * 2);
+						memset(tbl_y, 0, 5 * 2);
 						wcsncpy(tbl_x, data, wcschr(data, L' ') - data);
 						wcscpy(tbl_y, wcschr(data, L' ') + 1);
 						font_info[i].x = (short)_wtoi(tbl_x);
@@ -245,7 +247,7 @@ void WriteFntFile(char *fname)
 					}
 				if(tbl_cell != NULL)
 					if (fgetws(data, 256, tbl_cell) != NULL)
-						font_info[i].cell = (unit16)_wtoi(data);
+						font_info[i].cell = (short)_wtoi(data);
 			}
 			memcpy(&udata[i * 0x10], &font_info[i].x, 2);
 			memcpy(&udata[i * 0x10 + 0x2], &font_info[i].y, 2);
@@ -257,6 +259,19 @@ void WriteFntFile(char *fname)
 	{
 		for (i = 0; i < font_count; i++)
 		{
+			if (i >= 1577)
+			{
+				if (tbl_xy != NULL)
+					if (fgetws(data, 256, tbl_xy) != NULL)
+					{
+						memset(tbl_x, 0, 5 * 2);
+						memset(tbl_y, 0, 5 * 2);
+						wcsncpy(tbl_x, data, wcschr(data, L' ') - data);
+						wcscpy(tbl_y, wcschr(data, L' ') + 1);
+						font_info[i].x = (short)_wtoi(tbl_x);
+						font_info[i].y = (short)_wtoi(tbl_y);
+					}
+			}
 			memcpy(&udata[i * 0xC], &font_info[i], 0xC);
 			printf("fntnum:%d width:%d height:%d fntoffset:0x%X\n", i, font_info[i].width, font_info[i].height, font_info[i].offset);
 		}

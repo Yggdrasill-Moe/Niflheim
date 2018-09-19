@@ -33,11 +33,11 @@ struct header
 
 struct Font_Info
 {
+	short x;
+	short y;
 	unit16 width;
 	unit16 height;
 	unit32 offset;
-	short x;
-	short y;
 	unit16 cell;
 }font_info[10000];
 
@@ -114,7 +114,7 @@ void ReadIndex(FILE *src, char *fname)
 	fread(&fnt_header.width, 1, 4, src);
 	fread(&fnt_header.height, 1, 4, src);
 	fread(&fnt_header.decompsize, 1, 4, src);
-	if (fnt_header.decompsize == 0xFFFF00 || fnt_header.decompsize == 0xFFFF01 || fnt_header.decompsize == 0x1FFFF00)
+	if ((fnt_header.decompsize & 0xFFFF00) == 0xFFFF00)
 	{
 		fnt_header.seekflag = fnt_header.decompsize;
 		fseek(src, 9, SEEK_CUR);
@@ -167,7 +167,10 @@ void WritePngFile(char *fname)
 	_chdir(dstname);
 	for (i = 0; i < font_count; i++)
 	{
-		printf("\t%08d.png x:%d y:%d cell:%d width:%d height:%d offset:0x%X\n", i, font_info[i].x, font_info[i].y,font_info[i].cell, font_info[i].width, font_info[i].height, font_info[i].offset);
+		if (fnt_header.fontflag == 0x103)
+			printf("\t%08d.png x:%d y:%d cell:%d width:%d height:%d offset:0x%X\n", i, font_info[i].x, font_info[i].y,font_info[i].cell, font_info[i].width, font_info[i].height, font_info[i].offset);
+		else
+			printf("\t%08d.png x:%d y:%d width:%d height:%d offset:0x%X\n", i, font_info[i].x, font_info[i].y, font_info[i].width, font_info[i].height, font_info[i].offset);
 		if (font_info[i].width != 0 && font_info[i].height != 0)
 		{
 			fseek(src, font_info[i].offset + savepos, SEEK_SET);

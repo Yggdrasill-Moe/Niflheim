@@ -2,9 +2,15 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <locale>
 #include <Windows.h>
+#include <direct.h>
+#include <io.h>
+#include <png.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#include FT_OUTLINE_H
+#include FT_BITMAP_H
 
 using namespace std;
 
@@ -34,3 +40,4 @@ private:
 	FT_Error error;
 	bool FT_Init(string font_path, DWORD font_height);
 };
+void WritePng(FILE *pngfile, DWORD width, DWORD height, BYTE* data);
