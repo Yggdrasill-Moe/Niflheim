@@ -17,7 +17,7 @@ int main(int agrc, char* agrv[])
 			wprintf(L"fnt_make.ini文件不存在！");
 			exit(0);
 		}
-		DWORD slen, k = 0, i = 1577, height = 0;
+		DWORD slen, k = 0, i = 1577, height = 0, p_count = 0;
 		char dstname[200], buff[256];
 		wchar_t tbl, data[256], *find;
 		FILE *tbl_xy = fopen("tbl_xy.txt", "wt,ccs=UNICODE");
@@ -27,6 +27,7 @@ int main(int agrc, char* agrv[])
 		_mkdir("tbl_fnt");
 		GetPrivateProfileStringA(agrv[2], "Font", "SourceHanSansCN-Medium.otf", buff, 100, iniPath);
 		height = GetPrivateProfileIntA(agrv[2], "Height", 0, iniPath);
+		p_count = GetPrivateProfileIntA(agrv[2], "Pixel_count", 1, iniPath);
 		FT_Make ft(buff, height);
 		_chdir("tbl_fnt");
 		CharBitmap cb;
@@ -45,10 +46,10 @@ int main(int agrc, char* agrv[])
 			cb = ft.GetCharBitmap(tbl);
 			sprintf(dstname, "%08d.png", i);
 			pngfile = fopen(dstname, "wb");
-			WritePng(pngfile, cb.bmp_width, cb.bmp_height, cb.bmpBuffer);
-			wprintf(L"ch:%lc size:%d width:%d height:%d x:%d y:%d cell:%d\n", tbl, (cb.bmp_width + 2) * (cb.bmp_height + 2), cb.bmp_width + 2, cb.bmp_height + 2, cb.bearingX + GetPrivateProfileIntA(agrv[2], "X_mod", 0, iniPath), height - cb.bearingY + GetPrivateProfileIntA(agrv[2], "Y_fix", 0, iniPath), cb.Advance + 2);
+			WritePng(pngfile, cb.bmp_width, cb.bmp_height, p_count, cb.bmpBuffer);
+			wprintf(L"ch:%lc size:%d width:%d height:%d x:%d y:%d cell:%d\n", tbl, (cb.bmp_width + p_count * 2) * (cb.bmp_height + p_count * 2), cb.bmp_width + p_count * 2, cb.bmp_height + p_count * 2, cb.bearingX + GetPrivateProfileIntA(agrv[2], "X_mod", 0, iniPath), height - cb.bearingY + GetPrivateProfileIntA(agrv[2], "Y_fix", 0, iniPath), cb.Advance + p_count * 2);
 			fwprintf(tbl_xy, L"%d %d\n", cb.bearingX + GetPrivateProfileIntA(agrv[2], "X_mod", 0, iniPath), height - cb.bearingY + GetPrivateProfileIntA(agrv[2], "Y_fix", 0, iniPath));
-			fwprintf(tbl_cell, L"%d\n", cb.Advance + 2);
+			fwprintf(tbl_cell, L"%d\n", cb.Advance + p_count * 2);
 			i++;
 			fclose(pngfile);
 		}

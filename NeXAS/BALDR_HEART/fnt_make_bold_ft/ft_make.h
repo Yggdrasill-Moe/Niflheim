@@ -40,4 +40,5 @@ private:
 	FT_Error error;
 	bool FT_Init(string font_path, DWORD font_height);
 };
-void WritePng(FILE *pngfile, DWORD width, DWORD height, BYTE* data);
+BYTE* BuildOutline(DWORD width, DWORD height, BYTE* data, bool do_delete);
+void WritePng(FILE *pngfile, DWORD width, DWORD height, DWORD p_count, BYTE* data);

@@ -80,14 +80,113 @@ FT_Make::~FT_Make()
 	FT_Done_FreeType(library);
 }
 
-void WritePng(FILE *pngfile, DWORD width, DWORD height, BYTE* data)
+BYTE* BuildOutline(DWORD width, DWORD height, BYTE* data, bool do_delete)
+{
+	DWORD i = 0;
+	BYTE *odata, *udata, *ddata;
+	height += 2;
+	width += 2;
+	odata = new BYTE[width*height];//操作数据，初始状态和data一样
+	udata = new BYTE[width*height];//初始状态为往上偏移一像素的odata
+	ddata = new BYTE[width*height];//初始状态为往下偏移一像素的odata
+	memset(odata, 0, width*height);
+	memset(udata, 0, width*height);
+	memset(ddata, 0, width*height);
+	//构建，数据放到区域中往下和往右偏移一像素
+	for (i = 0; i < height - 2; i++)
+		memcpy(odata + width + i*width + 1, data + i*(width - 2), width - 2);
+	//构建偏移后的数据
+	memcpy(udata, odata + width, width*height - width);//上移
+	memcpy(ddata + width, odata, width*height - width);//下移
+	//开始构建描边数据，算法嘛，大概是试出来的？
+	//上下偏移后的数据合并
+	for (i = 0; i < width*height; i++)
+	{
+		if (udata[i] != 0xFF)
+		{
+			if (ddata[i] != 0xFF)
+			{
+				if (udata[i] + ddata[i] >= 0xFF)
+					udata[i] = 0xFF;
+				else
+					udata[i] += ddata[i];
+			}
+			else
+				udata[i] = 0xFF;
+		}
+	}
+	//这个阶段中间先来一次，有兴趣可以注释后面的左右偏移部分直接输出png看看生成的图片是怎么样的
+	for (i = 0; i < width*height; i++)
+	{
+		if (odata[i] != 0xFF)
+		{
+			if (udata[i] != 0xFF)
+			{
+				if (odata[i] + udata[i] >= 0xFF)
+					odata[i] = 0xFF;
+				else
+					odata[i] += udata[i];
+			}
+			else
+				odata[i] = 0xFF;
+		}
+	}
+	//开始构建左右偏移一像素部分
+	memset(udata, 0, width*height);
+	memset(ddata, 0, width*height);
+	//上面处理完的数据向左向右偏移一个像素
+	for (i = 0; i < height; i++)
+	{
+		memcpy(udata + i * width, odata + i * width + 1, width - 2);
+		memcpy(ddata + i * width + 2, odata + i * width + 1, width - 2);
+	}
+	//左右合并
+	for (i = 0; i < width*height; i++)
+	{
+		if (udata[i] != 0xFF)
+		{
+			if (ddata[i] != 0xFF)
+			{
+				if (udata[i] + ddata[i] >= 0xFF)
+					udata[i] = 0xFF;
+				else
+					udata[i] += ddata[i];
+			}
+			else
+				udata[i] = 0xFF;
+		}
+	}
+	//中间再来一次
+	for (i = 0; i < width*height; i++)
+	{
+		if (odata[i] != 0xFF)
+		{
+			if (udata[i] != 0xFF)
+			{
+				if (odata[i] + udata[i] >= 0xFF)
+					odata[i] = 0xFF;
+				else
+					odata[i] += udata[i];
+			}
+			else
+				odata[i] = 0xFF;
+		}
+	}
+	delete[] udata;
+	delete[] ddata;
+	if (do_delete)
+		delete[] data;
+	return odata;
+}
+
+void WritePng(FILE *pngfile, DWORD width, DWORD height, DWORD p_count, BYTE* data)
 {
 	png_structp png_ptr;
 	png_infop info_ptr;
-	DWORD i = 0, k = 0;
-	BYTE *dst, *src, *odata, *udata, *ddata;
-	height += 2;
-	width += 2;
+	DWORD i = 0;
+	BYTE *dst, *src, *odata = NULL;
+	width += p_count * 2;
+	height += p_count * 2;
 	png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if (png_ptr == NULL)
 	{
@@ -104,89 +203,17 @@ void WritePng(FILE *pngfile, DWORD width, DWORD height, BYTE* data)
 	png_init_io(png_ptr, pngfile);
 	png_set_IHDR(png_ptr, info_ptr, width, height, 8, PNG_COLOR_TYPE_RGB_ALPHA, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
 	png_write_info(png_ptr, info_ptr);
-	dst = new BYTE[width*height * 4];
-	src = new BYTE[width*height];
-	odata = new BYTE[width*height];
-	udata = new BYTE[width*height];
-	ddata = new BYTE[width*height];
+	dst = new BYTE[width*height * 4];//最终数据
+	src = new BYTE[width*height];//初始像素数据
 	memset(src, 0, width*height);
-	memset(odata, 0, width*height);
-	memset(udata, 0, width*height);
-	memset(ddata, 0, width*height);
-	for (i = 0; i < height - 2; i++)
-	{
-		memcpy(odata + width + i*width + 1, data + i*(width - 2), width - 2);
-		memcpy(src + width + i*width + 1, data + i*(width - 2), width - 2);
-	}
-	memcpy(udata, odata + width, width*height - width);
-	memcpy(ddata + width, odata, width*height - width);
-	for (i = 0; i < width*height; i++)
-	{
-		if (udata[i] != 0xFF)
-		{
-			if (ddata[i] != 0xFF)
-			{
-				if (udata[i] + ddata[i] >= 0xFF)
-					udata[i] = 0xFF;
-				else
-					udata[i] += ddata[i];
-			}
-			else
-				udata[i] = 0xFF;
-		}
-	}
-	for (i = 0; i < width*height; i++)
-	{
-		if (odata[i] != 0xFF)
-		{
-			if (udata[i] != 0xFF)
-			{
-				if (odata[i] + udata[i] >= 0xFF)
-					odata[i] = 0xFF;
-				else
-					odata[i] += udata[i];
-			}
-			else
-				odata[i] = 0xFF;
-		}
-	}
-	memset(udata, 0, width*height);
-	memset(ddata, 0, width*height);
-	for (i = 0; i < height; i++)
-	{
-		memcpy(udata + i * width, odata + i * width + 1, width - 2);
-		memcpy(ddata + i * width + 2, odata + i * width + 1, width - 2);
-	}
-	for (i = 0; i < width*height; i++)
-	{
-		if (udata[i] != 0xFF)
-		{
-			if (ddata[i] != 0xFF)
-			{
-				if (udata[i] + ddata[i] >= 0xFF)
-					udata[i] = 0xFF;
-				else
-					udata[i] += ddata[i];
-			}
-			else
-				udata[i] = 0xFF;
-		}
-	}
-	for (i = 0; i < width*height; i++)
-	{
-		if (odata[i] != 0xFF)
-		{
-			if (udata[i] != 0xFF)
-			{
-				if (odata[i] + udata[i] >= 0xFF)
-					odata[i] = 0xFF;
-				else
-					odata[i] += udata[i];
-			}
-			else
-				odata[i] = 0xFF;
-		}
-	}
+	for (i = 0; i < height - p_count * 2; i++)
+		memcpy(src + p_count * width/*初始往下偏移像素*/ + i*width + p_count/*往右偏移多少像素*/, data + i*(width - p_count * 2), width - p_count * 2);
+	for (i = p_count; i > 0; i--)
+		if (i == p_count)
+			odata = BuildOutline(width - i * 2, height - i * 2, data, false);
+		else
+			odata = BuildOutline(width - i * 2, height - i * 2, odata, true);
+	//输出
 	for (i = 0; i < width*height; i++)
 	{
 		dst[i * 4] = src[i];
@@ -198,8 +225,7 @@ void WritePng(FILE *pngfile, DWORD width, DWORD height, BYTE* data)
 		png_write_row(png_ptr, dst + i*width * 4);
 	png_write_end(png_ptr, info_ptr);
 	png_destroy_write_struct(&png_ptr, &info_ptr);
-	delete[] odata;
-	delete[] udata;
-	delete[] ddata;
+	delete[] src;
 	delete[] dst;
+	delete[] odata;
 }
