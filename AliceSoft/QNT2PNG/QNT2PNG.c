@@ -145,10 +145,10 @@ void WritePng(FILE *Pngname, unit32 Width, unit32 Height, unit32 Bpp, unit8* dat
 	png_destroy_write_struct(&png_ptr, &info_ptr);
 }
 
-void Build(unit8 *udata, unit8 *bitmap, unit8 *alpha,unit32 size)
+void Build(unit8 *udata, unit8 *bitmap, unit8 *alpha, unit32 size)
 {
 	unit32 src = 0, dst = 0, i = 0, stride = size * QNT_Header.width;
-	for (unit32 b = 0; b < 3; b++)
+	for (unit32 b = 0; b < 3; b++)//两行两行来，输出BGR值，原始内容是先存所有B，再存所有G，再存所有R
 	{
 		dst = b;
 		for (unit32 h = 0; h < QNT_Header.height / 2; h++)
@@ -162,25 +162,25 @@ void Build(unit8 *udata, unit8 *bitmap, unit8 *alpha,unit32 size)
 			dst += stride;
 		}
 	}
-	if (size == 4)
+	if (size == 4)//输出alpha值
 	{
 		for (i = 0; i < QNT_Header.width * QNT_Header.height; i++)
 			udata[i * 4 + 3] = alpha[i];
 	}
 	dst = size;
-	for (i = stride - size; i != 0; --i)
+	for (i = stride - size; i != 0; --i)//处理第一行
 	{
 		unit8 b = udata[dst - size] - udata[dst];
 		udata[dst++] = (unit8)b;
 	}
-	for (unit32 j = QNT_Header.height - 1; j != 0; --j)
+	for (unit32 j = QNT_Header.height - 1; j != 0; --j)//从第二行开始
 	{
-		for (i = 0; i != size; ++i)
+		for (i = 0; i != size; ++i)//处理下一行第一个像素的信息
 		{
 			udata[dst] = (unit8)(udata[dst - stride] - udata[dst]);
 			++dst;
 		}
-		for (i = stride - size; i != 0; --i)
+		for (i = stride - size; i != 0; --i)//处理这一行
 		{
 			unit32 b = ((unit32)udata[dst - stride] + udata[dst - size]) >> 1;
 			b -= udata[dst];
@@ -217,7 +217,7 @@ void WritePngFile()
 			free(cdata);
 		}
 		udata = malloc(QNT_Header.width * QNT_Header.height * (QNT_Header.bpp / 8));
-		Build2(udata, bitmap, alpha, QNT_Header.bpp / 8);
+		Build(udata, bitmap, alpha, QNT_Header.bpp / 8);
 		free(bitmap);
 		if (QNT_Header.alpha_size != 0)
 			free(alpha);
