@@ -160,12 +160,32 @@ void Build(unit8 *udata, unit8 *bitmap, unit8 *alpha, unit32 size)
 				dst += size;
 			}
 			dst += stride;
+			src += 2 * (QNT_Header.width & 1);
+		}
+		if (QNT_Header.height % 2 == 1)
+		{
+			for (unit32 w = 0; w < QNT_Header.width; w++)
+			{
+				udata[dst] = bitmap[src];
+				dst += size;
+				src += 2;//就只有一个字节有用，第二个字节空白
+			}
+			src += 2 * (QNT_Header.width & 1);
 		}
 	}
 	if (size == 4)//输出alpha值
 	{
-		for (i = 0; i < QNT_Header.width * QNT_Header.height; i++)
-			udata[i * 4 + 3] = alpha[i];
+		dst = 3;
+		src = 0;
+		for (unit32 h = 0; h < QNT_Header.height; h++)
+		{
+			for (unit32 w = 0; w < QNT_Header.width; w++)
+			{
+				udata[dst] = alpha[src++];
+				dst += 4;
+			}
+			src += QNT_Header.width & 1;
+		}
 	}
 	dst = size;
 	for (i = stride - size; i != 0; --i)//处理第一行
@@ -193,17 +213,19 @@ void WritePngFile()
 {
 	FILE *src = NULL, *dst = NULL;
 	unit8 *cdata = NULL, *udata = NULL, *bitmap = NULL, *alpha = NULL;
-	unit32 i = 0, decomp_size = 0;
+	unit32 i = 0, decomp_size = 0, w = 0, h = 0;
 	WCHAR dstname[MAX_PATH];
 	for (i = 0; i < FileNum; i++)
 	{
 		src = _wfopen(Index[i].FileName, L"rb");
 		wprintf(L"name:%ls ", Index[i].FileName);
 		ReadIndex(src);
+		w = (QNT_Header.width + 1) & ~1;
+		h = (QNT_Header.height + 1) & ~1;
 		wsprintf(dstname, L"%ls.png", Index[i].FileName);
 		cdata = malloc(QNT_Header.rgb_size);
 		fread(cdata, QNT_Header.rgb_size, 1, src);
-		decomp_size = QNT_Header.width * QNT_Header.height * 3;
+		decomp_size = w * h * 3;
 		bitmap = malloc(decomp_size);
 		uncompress(bitmap, &decomp_size, cdata, QNT_Header.rgb_size);
 		free(cdata);
@@ -211,7 +233,7 @@ void WritePngFile()
 		{
 			cdata = malloc(QNT_Header.alpha_size);
 			fread(cdata, QNT_Header.alpha_size, 1, src);
-			decomp_size = QNT_Header.width * QNT_Header.height;
+			decomp_size = w * QNT_Header.height;
 			alpha = malloc(decomp_size);
 			uncompress(alpha, &decomp_size, cdata, QNT_Header.alpha_size);
 			free(cdata);

@@ -204,9 +204,19 @@ void ReBuild(unit8 *udata, unit8 *bitmap, unit8 *alpha, unit32 size)
 	}
 	if (size == 4)//输出alpha值
 	{
-		for (i = 0; i < QNT_Header.width * QNT_Header.height; i++)
-			 alpha[i] = udata[i * 4 + 3];
+		dst = 3;
+		src = 0;
+		for (unit32 h = 0; h < QNT_Header.height; h++)
+		{
+			for (unit32 w = 0; w < QNT_Header.width; w++)
+			{
+				alpha[src++] = udata[dst];
+				dst += 4;
+			}
+			src += QNT_Header.width & 1;
+		}
 	}
+	src = 0;
 	for (unit32 b = 0; b < 3; b++)//两行两行来，输出BGR值，原始内容是先存所有B，再存所有G，再存所有R
 	{
 		dst = b;
@@ -219,6 +229,17 @@ void ReBuild(unit8 *udata, unit8 *bitmap, unit8 *alpha, unit32 size)
 				dst += size;
 			}
 			dst += stride;
+			src += 2 * (QNT_Header.width & 1);
+		}
+		if (QNT_Header.height % 2 == 1)
+		{
+			for (unit32 w = 0; w < QNT_Header.width; w++)
+			{
+				bitmap[src] = udata[dst];
+				dst += size;
+				src += 2;//就只有一个字节有用，第二个字节空白
+			}
+			src += 2 * (QNT_Header.width & 1);
 		}
 	}
 }
@@ -227,7 +248,7 @@ void ReadPngFile()
 {
 	FILE *src = NULL, *dst = NULL;
 	unit8 *cdata = NULL, *udata = NULL, *bitmap = NULL, *alpha = NULL;
-	unit32 i = 0, decomp_size = 0;
+	unit32 i = 0, decomp_size = 0, w = 0, h = 0;
 	WCHAR dstname[MAX_PATH];
 	for (i = 0; i < FileNum; i++)
 	{
@@ -235,27 +256,35 @@ void ReadPngFile()
 		wprintf(L"name:%ls ", Index[i].FileName);
 		ReadIndex(src);
 		fclose(src);
+		w = (QNT_Header.width + 1) & ~1;
+		h = (QNT_Header.height + 1) & ~1;
 		wsprintf(dstname, L"%ls.png", Index[i].FileName);
 		src = _wfopen(dstname, L"rb");
 		wsprintf(dstname, L"%ls.new", Index[i].FileName);
 		udata = ReadPng(src);
-		decomp_size = QNT_Header.width * QNT_Header.height * 3;
+		decomp_size = w * h * 3;
 		bitmap = malloc(decomp_size);
+		memset(bitmap, 0, decomp_size);
 		if (QNT_Header.alpha_size != 0)
-			alpha = malloc(QNT_Header.width * QNT_Header.height);
+		{
+			alpha = malloc(w * QNT_Header.height);
+			memset(alpha, 0, w * QNT_Header.height);
+		}
 		ReBuild(udata, bitmap, alpha, QNT_Header.bpp / 8);
 		free(udata);
 		dst = _wfopen(dstname, L"wb");
 		fseek(dst, QNT_Header.head_size, SEEK_SET);
 		cdata = malloc(decomp_size * 2);
-		compress2(cdata, &QNT_Header.rgb_size, bitmap, decomp_size,Z_BEST_COMPRESSION);
+		QNT_Header.rgb_size = decomp_size;
+		compress2(cdata, &QNT_Header.rgb_size, bitmap, decomp_size, Z_BEST_COMPRESSION);
 		fwrite(cdata, QNT_Header.rgb_size, 1, dst);
 		free(cdata);
 		free(bitmap);
 		if (QNT_Header.alpha_size != 0)
 		{
-			decomp_size = QNT_Header.width * QNT_Header.height;
+			decomp_size = w * QNT_Header.height;
 			cdata = malloc(decomp_size * 2);
+			QNT_Header.alpha_size = decomp_size;
 			compress2(cdata, &QNT_Header.alpha_size, alpha, decomp_size, Z_BEST_COMPRESSION);
 			fwrite(cdata, QNT_Header.alpha_size, 1, dst);
 			free(cdata);
