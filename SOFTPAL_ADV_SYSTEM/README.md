@@ -5,6 +5,12 @@ fuckpac、pac_text.py:https://github.com/Inori/FuckGalEngine/tree/master/PAC
 
 pgd2png、png2pgd:crass源码
 ## [New]
+ver 0.95
+
+fuckfont新增freetype2生成
+
+建议使用此模式（-fi）生成，原始模式（-i）模式无法准确计算生成字模的长宽
+
 ver 0.9
 
 增加制作封包功能但有些字节不明白其意义，
