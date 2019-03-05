@@ -5,6 +5,12 @@ fuckpac、pac_text.py:https://github.com/Inori/FuckGalEngine/tree/master/PAC
 
 pgd2png、png2pgd:crass源码
 ## [New]
+ver 1.0
+
+更新图片处理程序，支持类型2的压缩解压，现在不会再生成中间文件
+
+关于类型2的压缩算法似乎是有损压缩，考虑后还是将其强制改为使用类型3的无损压缩
+
 ver 0.95
 
 fuckfont新增freetype2生成

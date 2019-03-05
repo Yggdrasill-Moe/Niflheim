@@ -21,13 +21,105 @@ bool PGD::ReadHeader(string pgdname)
 	return Header_OK;
 }
 
-void PGD::_pgd3_ge_process_24(BYTE *out, DWORD out_len, BYTE *__ge, DWORD __ge_length, WORD width, WORD height)
+void PGD::pgd_ge_process2(BYTE *out, DWORD out_len, BYTE *__ge, DWORD __ge_length, DWORD width, DWORD height)
+{
+	BYTE *src[4];
+
+	src[0] = __ge;
+	src[1] = src[0] + width * height / 4;
+	src[2] = src[1] + width * height / 4;
+
+	BYTE *dst = out;
+	for (DWORD k = 0; k < height / 2; ++k)
+	{
+		for (DWORD j = 0; j < width / 2; ++j)
+		{
+			int tmp[2];
+			int val, para[3];
+
+			tmp[0] = (char)*src[0]++;
+			tmp[1] = (char)*src[1]++;
+
+			para[0] = tmp[0] * 226;
+			para[1] = -43 * tmp[0] - 89 * tmp[1];
+			para[2] = tmp[1] * 179;
+
+			DWORD i = 0;
+			for (i = 0; i < 3; ++i)
+			{
+				val = (para[i] + (src[2][0] << 7)) >> 7;
+				if (val <= 255)
+				{
+					if (val < 0)
+						val = 0;
+				}
+				else
+					val = 255;
+				dst[i] = (BYTE)val;
+			}
+			dst[i++] = 0xFF;
+
+			for (; i < 7; ++i)
+			{
+				val = (para[i - 4] + (src[2][1] << 7)) >> 7;
+				if (val <= 255)
+				{
+					if (val < 0)
+						val = 0;
+				}
+				else
+					val = 255;
+				dst[i] = (BYTE)val;
+			}
+			dst[i] = 0xFF;
+
+			dst += width * 4;
+			src[3] = src[2] + width;
+
+			for (i = 0; i < 3; ++i)
+			{
+				val = (para[i] + (src[3][0] << 7)) >> 7;
+				if (val <= 255)
+				{
+					if (val < 0)
+						val = 0;
+				}
+				else
+					val = 255;
+				dst[i] = (BYTE)val;
+			}
+			dst[i++] = 0xFF;
+
+			for (; i < 7; ++i)
+			{
+				val = (para[i - 4] + (src[3][1] << 7)) >> 7;
+				if (val <= 255)
+				{
+					if (val < 0)
+						val = 0;
+				}
+				else
+					val = 255;
+				dst[i] = (BYTE)val;
+			}
+			dst[i] = 0xFF;
+
+			dst -= width * 4;
+			dst += 8;
+			src[2] += 2;
+		}
+		src[2] += width;
+		dst += width * 4;
+	}
+}
+
+void PGD::_pgd3_ge_process_24(BYTE *out, DWORD out_len, BYTE *__ge, DWORD __ge_length, DWORD width, DWORD height)
 {
 	BYTE *flag = __ge;
 	BYTE *src = flag + height;
 	BYTE *data = out;
 	int org_width = width;
-	for (int h = 0; h < height; ++h)
+	for (DWORD h = 0; h < height; ++h)
 	{
 		width = org_width;
 		if (flag[h] & 1)
@@ -72,13 +164,13 @@ void PGD::_pgd3_ge_process_24(BYTE *out, DWORD out_len, BYTE *__ge, DWORD __ge_l
 	}
 }
 
-void PGD::_pgd3_ge_process_32(BYTE *out, DWORD out_len, BYTE *__ge, DWORD __ge_length, WORD width, WORD height)
+void PGD::_pgd3_ge_process_32(BYTE *out, DWORD out_len, BYTE *__ge, DWORD __ge_length, DWORD width, DWORD height)
 {
 	BYTE *flag = __ge;
 	BYTE *data = out;
 	BYTE *src = flag + height;
 	int org_width = width;
-	for (int h = 0; h < height; ++h)
+	for (DWORD h = 0; h < height; ++h)
 	{
 		width = org_width;
 		if (flag[h] & 1)
@@ -126,7 +218,7 @@ void PGD::_pgd3_ge_process_32(BYTE *out, DWORD out_len, BYTE *__ge, DWORD __ge_l
 	}
 }
 
-void PGD::pgd_ge_process3(BYTE *out, DWORD out_len, BYTE *__ge, DWORD __ge_length, WORD width, WORD height, DWORD bpp)
+void PGD::pgd_ge_process3(BYTE *out, DWORD out_len, BYTE *__ge, DWORD __ge_length, DWORD width, DWORD height, DWORD bpp)
 {
 	if (bpp == 32)
 		_pgd3_ge_process_32(out, out_len, __ge, __ge_length, width, height);
@@ -183,7 +275,7 @@ bool PGD::pgd_uncompress()
 {
 	if (Header_OK)
 	{
-		if (strncmp("GE", pgd32_header.maigc0, 2) == 0)
+		if (strncmp("GE", pgd32_header.maigc, 2) == 0)
 		{
 			if (pgd32_header.sizeof_header == 0x20)
 			{
@@ -196,47 +288,68 @@ bool PGD::pgd_uncompress()
 					cout << "uncompress GE...\n";
 					_pgd_uncompress32(data, uncompr, pgd32_info.uncomprlen);
 					delete[] data;
-					ge_header_t *ge_header = (ge_header_t *)uncompr;
-					DWORD bpp = ge_header->bpp;
-					DWORD out_len = pgd32_header.width * pgd32_header.height * bpp / 8;
+					memcpy(&ge_header, uncompr, sizeof(ge_header_t));
+					DWORD out_len = pgd32_header.width * pgd32_header.height * ge_header.bpp / 8;
 					BYTE* out = new BYTE[out_len];
 					cout << "process GE...\n";
-					FILE* wf = fopen((filename.substr(0, filename.find_last_of(".")) + ".GEU").c_str(), "wb");
-					fwrite(uncompr, pgd32_info.uncomprlen, 1, wf);
-					fclose(wf);
-					pgd_ge_process3(out, out_len, (BYTE*)(ge_header + 1), pgd32_info.uncomprlen - sizeof(ge_header_t), ge_header->width, ge_header->height, bpp);
-					wf = fopen((filename.substr(0, filename.find_last_of("."))+".GEP").c_str(), "wb");
-					fwrite(out, 1, out_len, wf);
+					pgd_ge_process3(out, out_len, (BYTE*)(uncompr + sizeof(ge_header_t)), pgd32_info.uncomprlen - sizeof(ge_header_t), ge_header.width, ge_header.height, ge_header.bpp);
 					cout << "解压完成!\n";
 					delete[] uncompr;
-					delete[] out;
-					fclose(wf);
-					return true;
+					if (!PGD::ge2png(out))
+					{
+						delete[] out;
+						cout << "生成png失败!\n";
+					}
+					else
+					{
+						delete[] out;
+						return true;
+					}
+				}
+				else if (pgd32_header.compr_method == 2)
+				{
+					cout << "uncompress GE...\n";
+					_pgd_uncompress32(data, uncompr, pgd32_info.uncomprlen);
+					delete[] data;
+					ge_header.bpp = 32;
+					ge_header.width = (WORD)pgd32_header.width;
+					ge_header.height = (WORD)pgd32_header.height;
+					ge_header.unknown = 7;
+					DWORD out_len = pgd32_header.width * pgd32_header.height * 4;
+					BYTE* out = new BYTE[out_len];
+					cout << "process GE...\n";
+					pgd_ge_process2(out, out_len, uncompr, pgd32_info.uncomprlen, pgd32_header.width, pgd32_header.height);
+					cout << "解压完成!\n";
+					delete[] uncompr;
+					if (!PGD::ge2png(out))
+					{
+						delete[] out;
+						cout << "生成png失败!\n";
+					}
+					else
+					{
+						delete[] out;
+						return true;
+					}
 				}
 				else
-					cout << "非类型3!";
+					cout << "非类型2或3!\n";
 			}
 			else
-				cout << "非32位类型!";
+				cout << "非PGD32类型!\n";
 		}
 		else
-			cout << "文件头不是GE!";
+			cout << "文件头不是GE!\n";
 	}
 	else
-		cout << "读取文件头失败!";
+		cout << "读取文件头失败!\n";
+	system("pause");
 	return false;
 }
 
-bool PGD::geptopng()
+bool PGD::ge2png(BYTE *data)
 {
 	BYTE buff;
-	FILE *fp = fopen((filename.substr(0, filename.find_last_of(".")) + ".GEU").c_str(), "rb");
-	fread(&ge_header, sizeof(ge_header_t), 1, fp);
-	fclose(fp);
-	fp = fopen((filename.substr(0, filename.find_last_of(".")) + ".GEP").c_str(), "rb");
-	BYTE *data = new BYTE[ge_header.height*ge_header.width*ge_header.bpp / 8];
-	fread(data, 1, ge_header.height*ge_header.width*ge_header.bpp / 8, fp);
-	fclose(fp);
 	FILE *Pngname = fopen((filename.substr(0, filename.find_last_of(".")) + ".png").c_str(), "wb");
 	png_structp png_ptr;
 	png_infop info_ptr;
@@ -279,7 +392,6 @@ bool PGD::geptopng()
 			png_write_row(png_ptr, data + i*ge_header.width * 3);
 	png_write_end(png_ptr, info_ptr);
 	png_destroy_write_struct(&png_ptr, &info_ptr);
-	delete[] data;
 	fclose(Pngname);
 	return true;
 }

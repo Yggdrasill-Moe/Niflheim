@@ -12,14 +12,14 @@ using namespace std;
 
 typedef struct pgd32_header_s
 {
-	char maigc0[2];		// "GE"
-	WORD sizeof_header;	// 32
-	DWORD orig_x;			// 图象顶点在整个显示区域的位置
+	char maigc[2];//GE
+	WORD sizeof_header;//32
+	DWORD orig_x;//图象顶点在整个显示区域的位置
 	DWORD orig_y;
 	DWORD width;
 	DWORD height;
-	DWORD orig_width;		// 图象整个显示区域中显示的宽度
-	DWORD orig_height;	// 图象整个显示区域中显示的高度
+	DWORD orig_width;//图象整个显示区域中显示的宽度
+	DWORD orig_height;//图象整个显示区域中显示的高度
 	WORD compr_method;
 	WORD unknown;
 } pgd32_header_t;
@@ -27,13 +27,13 @@ typedef struct pgd32_header_s
 typedef struct pgd32_info_s
 {
 	DWORD uncomprlen;
-	DWORD comprlen;		// 包括本Info信息在内的8字节
+	DWORD comprlen;//包括本Info信息在内的8字节
 } pgd32_info_t;
 
 typedef struct ge_header_s
 {
-	WORD unknown;		// 7
-	WORD bpp;			// 32 or 24
+	WORD unknown;//7
+	WORD bpp;//32 or 24
 	WORD width;
 	WORD height;
 } ge_header_t;
@@ -47,8 +47,9 @@ public:
 	bool pgd_compress();
 	~PGD();
 private:
-	bool pngtogep(BYTE *TexData);
+	bool png2raw(BYTE *TexData);
 	bool ReadHeader(string pgdname);
+	void _pgd_uncompress32(BYTE *compr, BYTE *uncompr, DWORD uncomprlen);
 	DWORD _pgd_compress32(BYTE *uncompr, DWORD uncomprlen, FILE *pgdfile);
 	void _pgd3_ge_restore_24(BYTE *out, DWORD out_len, BYTE *__ge, DWORD __ge_length, WORD width, WORD height);
 	void _pgd3_ge_restore_32(BYTE *out, DWORD out_len, BYTE *__ge, DWORD __ge_length, WORD width, WORD height);

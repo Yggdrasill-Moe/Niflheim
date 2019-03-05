@@ -17,24 +17,51 @@ bool PGD::ReadHeader(string pgdname)
 		Header_OK = false;
 		return Header_OK;
 	}
-	if (strncmp("GE", pgd32_header.maigc0, 2) == 0)
+	Header_OK = true;
+	return Header_OK;
+}
+
+void PGD::_pgd_uncompress32(BYTE *compr, BYTE *uncompr, DWORD uncomprlen)
+{
+	DWORD act_uncomprlen = 0;
+	DWORD flag = *compr++ | 0xff00;
+
+	while (act_uncomprlen != uncomprlen)
 	{
-		if (pgd32_header.sizeof_header == 0x20)
+		DWORD base_offset, copy_bytes;
+		BYTE *src, *dst;
+
+		if (flag & 1)
 		{
-			fread(&pgd32_info, sizeof(pgd32_info_t), 1, fp);
-			FILE *rp = fopen((filename.substr(0, filename.find_last_of(".")) + ".GEU").c_str(), "rb");
-			fread(&ge_header, sizeof(ge_header_t), 1, rp);
-			fclose(rp);
-			Header_OK = true;
-			return Header_OK;
+			DWORD tmp = *(WORD *)compr;
+			compr += 2;
+			if (tmp & 8)
+			{
+				base_offset = tmp >> 4;
+				copy_bytes = (tmp & 0x7) + 4;
+			}
+			else
+			{
+				base_offset = (tmp << 8) | *compr++;
+				copy_bytes = (base_offset & 0xfff) + 4;
+				base_offset >>= 12;
+			}
+			src = uncompr + act_uncomprlen - base_offset;
 		}
 		else
-			cout << "非32位类型!";
+		{
+			copy_bytes = *compr++;
+			src = compr;
+			compr += copy_bytes;
+		}
+		dst = uncompr + act_uncomprlen;
+		for (DWORD i = 0; i < copy_bytes; ++i)
+			*dst++ = *src++;
+		flag >>= 1;
+		act_uncomprlen += copy_bytes;
+		if (!(flag & 0x0100))
+			flag = *compr++ | 0xff00;
 	}
-	else
-		cout << "文件头不是GE!";
-	Header_OK = false;
-	return Header_OK;
 }
 
 void PGD::_pgd3_ge_restore_32(BYTE *out, DWORD out_len, BYTE *__ge, DWORD __ge_length, WORD width, WORD height)
@@ -90,7 +117,7 @@ void PGD::_pgd3_ge_restore_24(BYTE *out, DWORD out_len, BYTE *__ge, DWORD __ge_l
 
 void PGD::pgd_ge_restore3(BYTE *out, DWORD out_len, BYTE *__ge, DWORD __ge_length, WORD width, WORD height, DWORD bpp)
 {
-	cout << "restore to GEU...\n";
+	cout << "restore to GE...\n";
 	if (bpp == 32)
 		_pgd3_ge_restore_32(out, out_len, __ge, __ge_length, width, height);
 	else if (bpp = 24)
@@ -127,26 +154,73 @@ DWORD PGD::_pgd_compress32(BYTE *uncompr, DWORD uncomprlen,FILE *pgdfile)
 
 bool PGD::pgd_compress()
 {
-	BYTE *TexData = new BYTE[ge_header.height*ge_header.width*ge_header.bpp / 8];
-	if (pngtogep(TexData))
+	if (Header_OK)
 	{
-		BYTE *geu = new BYTE[pgd32_info.uncomprlen];
-		pgd_ge_restore3(geu, pgd32_info.uncomprlen, TexData, ge_header.height*ge_header.width*ge_header.bpp / 8, ge_header.width, ge_header.height, ge_header.bpp);
-		delete[] TexData;
-		FILE *pgdfile = fopen((filename.substr(0, filename.find_last_of(".")) + ".PGDN").c_str(), "wb");
-		fwrite(&pgd32_header, sizeof(pgd32_header_t), 1, pgdfile);
-		fwrite(&pgd32_info, sizeof(pgd32_info_t), 1, pgdfile);
-		pgd32_info.comprlen = _pgd_compress32(geu, pgd32_info.uncomprlen, pgdfile);
-		delete[] geu;
-		fseek(pgdfile, sizeof(pgd32_header_t), SEEK_SET);
-		fwrite(&pgd32_info, sizeof(pgd32_info_t), 1, pgdfile);
-		fclose(pgdfile);
-		return true;
+		if (strncmp("GE", pgd32_header.maigc, 2) == 0)
+		{
+			if (pgd32_header.sizeof_header == 0x20)
+			{
+				if (pgd32_header.compr_method == 3|| pgd32_header.compr_method == 2)
+				{
+					fread(&pgd32_info, sizeof(pgd32_info_t), 1, fp);
+					if (pgd32_header.compr_method == 3)
+					{
+						BYTE* data = new BYTE[pgd32_info.comprlen];
+						fread(data, 1, pgd32_info.comprlen, fp);
+						BYTE* uncompr = new BYTE[pgd32_info.uncomprlen];
+						_pgd_uncompress32(data, uncompr, pgd32_info.uncomprlen);
+						delete[] data;
+						memcpy(&ge_header, uncompr, sizeof(ge_header_t));
+						delete[] uncompr;
+					}
+					else
+					{
+						ge_header.bpp = 32;
+						ge_header.width = (WORD)pgd32_header.width;
+						ge_header.height = (WORD)pgd32_header.height;
+						ge_header.unknown = 7;
+						pgd32_info.uncomprlen = ge_header.width*ge_header.height * 4 + 8 + ge_header.height;
+						/*
+						pgd32_header.compr_method == 2时使用的算法看起来应该是类似一种rgb转16位灰度或者类似种插值算法的。
+						这种算法用一次图片质量就降一次，所以这里还是使用pgd32_header.compr_method == 3的压缩算法，
+						原游戏本身压的时候就损耗了一次，我们转换再还原又会损耗一次，所以还是用无损吧。
+						（哪有那么复杂！其实就是反写不出压缩算法。。。。。。虽然有取巧的方法）
+						*/
+						pgd32_header.compr_method = 3;
+					}
+					BYTE *TexData = new BYTE[ge_header.height*ge_header.width*ge_header.bpp / 8];
+					if (png2raw(TexData))
+					{
+						BYTE *ge = new BYTE[pgd32_info.uncomprlen];
+						pgd_ge_restore3(ge, pgd32_info.uncomprlen, TexData, ge_header.height*ge_header.width*ge_header.bpp / 8, ge_header.width, ge_header.height, ge_header.bpp);
+						delete[] TexData;
+						FILE *pgdfile = fopen((filename.substr(0, filename.find_last_of(".")) + ".PGDN").c_str(), "wb");
+						fwrite(&pgd32_header, sizeof(pgd32_header_t), 1, pgdfile);
+						fwrite(&pgd32_info, sizeof(pgd32_info_t), 1, pgdfile);
+						pgd32_info.comprlen = _pgd_compress32(ge, pgd32_info.uncomprlen, pgdfile);
+						delete[] ge;
+						fseek(pgdfile, sizeof(pgd32_header_t), SEEK_SET);
+						fwrite(&pgd32_info, sizeof(pgd32_info_t), 1, pgdfile);
+						fclose(pgdfile);
+						return true;
+					}
+				}
+				else
+					cout << "非类型2或3!\n";
+			}
+			else
+				cout << "非PGD32类型!\n";
+		}
+		else
+			cout << "文件头不是GE!\n";
 	}
+	else
+		cout << "读取文件头失败!\n";
+	system("pause");
 	return false;
 }
 
-bool PGD::pngtogep(BYTE *TexData)
+bool PGD::png2raw(BYTE *TexData)
 {
 	BYTE buff;
 	png_structp png_ptr;
@@ -155,7 +229,7 @@ bool PGD::pngtogep(BYTE *TexData)
 	DWORD i = 0;
 	FILE *OpenPng = fopen((filename.substr(0, filename.find_last_of(".")) + ".png").c_str(), "rb");
 	png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-	cout << "restore to GEP...\n";
+	cout << "restore to raw...\n";
 	if (png_ptr == NULL)
 	{
 		printf("PNG信息创建失败!\n");
