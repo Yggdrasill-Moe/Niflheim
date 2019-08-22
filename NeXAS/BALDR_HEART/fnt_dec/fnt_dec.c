@@ -91,9 +91,10 @@ void ReadIndex(FILE *src, char *fname)
 	if (strncmp(fnt_header.magic, "FNT\0", 4) != 0)
 	{
 		printf("文件头不是FNT\0!");
+		system("pause");
 		exit(0);
 	}
-	if (strncmp(fname, "systemascii", 11) != 0)
+	if (strncmp(fname, "systemascii", 11) != 0 && strncmp(fname, "systemtutorial", 14) != 0)
 	{
 		fread(fnt_header.magic2, 1, 9, src);
 		fread(&fnt_header.flag, 1, 2, src);
@@ -101,11 +102,13 @@ void ReadIndex(FILE *src, char *fname)
 		if (strncmp(fnt_header.magic2, "DATA VER-", 9) != 0)
 		{
 			printf("文件头无DATA VER-!");
+			system("pause");
 			exit(0);
 		}
 		else if (fnt_header.flag != 1)
 		{
 			printf("flag不为1!");
+			system("pause");
 			exit(0);
 		}
 		if (fnt_header.fontflag == 0x103)
@@ -114,7 +117,7 @@ void ReadIndex(FILE *src, char *fname)
 	fread(&fnt_header.width, 1, 4, src);
 	fread(&fnt_header.height, 1, 4, src);
 	fread(&fnt_header.decompsize, 1, 4, src);
-	if ((fnt_header.decompsize & 0xFFFF00) == 0xFFFF00)
+	if ((fnt_header.decompsize & 0xFF00) == 0xFF00)
 	{
 		fnt_header.seekflag = fnt_header.decompsize;
 		fseek(src, 9, SEEK_CUR);
@@ -182,7 +185,7 @@ void WritePngFile(char *fname)
 			fclose(dst);
 			bdata = malloc(font_info[i].width*font_info[i].height);
 			for (k = 0; k < font_info[i].width*font_info[i].height; k++)
-				bdata[k] = cdata[k * 2 + 1];
+				bdata[k] = cdata[k * 2];
 			free(cdata);
 			sprintf(dstname, "%08d.bin", i);
 			dst = fopen(dstname, "wb");

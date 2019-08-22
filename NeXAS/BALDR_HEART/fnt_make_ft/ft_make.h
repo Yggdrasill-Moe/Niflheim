@@ -40,4 +40,4 @@ private:
 	FT_Error error;
 	bool FT_Init(string font_path, DWORD font_height);
 };
-void WritePng(FILE *pngfile, DWORD width, DWORD height, BYTE* data);
+void WritePng(FILE *pngfile, DWORD width, DWORD height, DWORD interval, DWORD gradient, DWORD fill, BYTE* data);

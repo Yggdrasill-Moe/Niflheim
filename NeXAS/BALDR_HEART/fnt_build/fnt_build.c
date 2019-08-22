@@ -55,7 +55,7 @@ unit8* ReadIndex(char *fname,unit8* fntname,unit32 *savepos)
 		printf("文件头不是FNT\0!");
 		exit(0);
 	}
-	if (strncmp(fname, "systemascii", 11) != 0)
+	if (strncmp(fname, "systemascii", 11) != 0 && strncmp(fname, "systemtutorial", 14) != 0)
 	{
 		fread(fnt_header.magic2, 1, 9, src);
 		fread(&fnt_header.flag, 1, 2, src);
@@ -80,7 +80,7 @@ unit8* ReadIndex(char *fname,unit8* fntname,unit32 *savepos)
 	fread(&fnt_header.height, 1, 4, src);
 	*savepos = ftell(src);
 	fread(&fnt_header.decompsize, 1, 4, src);
-	if ((fnt_header.decompsize & 0xFFFF00) == 0xFFFF00)
+	if ((fnt_header.decompsize & 0xFF00) == 0xFF00)
 	{
 		fnt_header.seekflag = fnt_header.decompsize;
 		fseek(src, 9, SEEK_CUR);
@@ -211,9 +211,12 @@ void WriteFntFile(char *fname)
 	fclose(dst);
 	dst = fopen(dstname, "wb");
 	fwrite(fnt_header.magic, 1, 4, dst);
-	fwrite(fnt_header.magic2, 1, 9, dst);
-	fwrite(&fnt_header.flag, 1, 2, dst);
-	fwrite(&fnt_header.fontflag, 1, 2, dst);
+	if (strncmp(fname, "systemascii", 11) != 0 && strncmp(fname, "systemtutorial", 14) != 0)
+	{
+		fwrite(fnt_header.magic2, 1, 9, dst);
+		fwrite(&fnt_header.flag, 1, 2, dst);
+		fwrite(&fnt_header.fontflag, 1, 2, dst);
+	}
 	if (fnt_header.fontflag == 0x103)
 	{
 		fprintf(dst, "%s", fntname);
@@ -221,7 +224,7 @@ void WriteFntFile(char *fname)
 	}
 	fwrite(&fnt_header.width, 1, 4, dst);
 	fwrite(&fnt_header.height, 1, 4, dst);
-	if ((fnt_header.seekflag & 0xFFFF00) == 0xFFFF00)
+	if ((fnt_header.seekflag & 0xFF00) == 0xFF00)
 	{
 		fwrite(&fnt_header.seekflag, 1, 4, dst);
 		fseek(dst, 9, SEEK_CUR);

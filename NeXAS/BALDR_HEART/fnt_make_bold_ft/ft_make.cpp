@@ -179,14 +179,26 @@ BYTE* BuildOutline(DWORD width, DWORD height, BYTE* data, bool do_delete)
 	return odata;
 }
 
-void WritePng(FILE *pngfile, DWORD width, DWORD height, DWORD p_count, BYTE* data)
+BYTE* FillOutlineData(DWORD width, DWORD height, DWORD fill, BYTE* data)
+{
+	DWORD i = 0;
+	BYTE *odata;
+	odata = new BYTE[width*height];//操作数据，初始状态和data一样
+	memset(odata, 0, width*height);
+	for (i = 0; i < height - fill * 2; i++)
+		memcpy(odata + fill * width/*初始往下偏移像素*/ + i*width + fill/*往右偏移多少像素*/, data + i*(width - fill * 2), width - fill * 2);
+	delete[] data;
+	return odata;
+}
+
+void WritePng(FILE *pngfile, DWORD width, DWORD height, DWORD p_count, DWORD interval, DWORD gradient, DWORD fill, BYTE* data)
 {
 	png_structp png_ptr;
 	png_infop info_ptr;
-	DWORD i = 0;
+	DWORD i = 0, k = 0;
 	BYTE *dst, *src, *odata = NULL;
-	width += p_count * 2;
-	height += p_count * 2;
+	width += p_count * 2 + fill * 2;
+	height += p_count * 2 + fill * 2;
 	png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if (png_ptr == NULL)
 	{
@@ -206,13 +218,52 @@ void WritePng(FILE *pngfile, DWORD width, DWORD height, DWORD p_count, BYTE* dat
 	dst = new BYTE[width*height * 4];//最终数据
 	src = new BYTE[width*height];//初始像素数据
 	memset(src, 0, width*height);
-	for (i = 0; i < height - p_count * 2; i++)
-		memcpy(src + p_count * width/*初始往下偏移像素*/ + i*width + p_count/*往右偏移多少像素*/, data + i*(width - p_count * 2), width - p_count * 2);
+	for (i = 0; i < height - p_count * 2 - fill * 2; i++)
+		memcpy(src + p_count * width + fill*width/*初始往下偏移像素*/ + i*width + p_count + fill/*往右偏移多少像素*/, data + i*(width - p_count * 2 - fill * 2), width - p_count * 2 - fill - 2);
 	for (i = p_count; i > 0; i--)
 		if (i == p_count)
-			odata = BuildOutline(width - i * 2, height - i * 2, data, false);
+			odata = BuildOutline(width - i * 2 - fill * 2, height - i * 2 - fill * 2, data, false);
 		else
-			odata = BuildOutline(width - i * 2, height - i * 2, odata, true);
+			odata = BuildOutline(width - i * 2 - fill * 2, height - i * 2 - fill * 2, odata, true);
+	if (fill)
+		odata = FillOutlineData(width, height, fill, odata);
+	//线条字
+	if (interval)
+	{
+		for (k = 0; k < height; k++)
+		{
+			if (k % 2)
+			{
+				for (i = 0; i < width; i++)
+				{
+					if (src[k * width + i] != 0)
+					{
+						if (src[k * width + i] >= interval)
+							src[k * width + i] -= interval;
+						else
+							src[k * width + i] = 0;
+					}
+				}
+			}
+		}
+	}
+	//渐变
+	if (gradient)
+	{
+		for (k = 0; k < height; k++)
+		{
+			for (i = 0; i < width; i++)
+			{
+				if (src[k * width + i] != 0)
+				{
+					if (src[k * width + i] >= k * gradient)
+						src[k * width + i] -= k * gradient;
+					else
+						src[k * width + i] = 0;
+				}
+			}
+		}
+	}
 	//输出
 	for (i = 0; i < width*height; i++)
 	{
