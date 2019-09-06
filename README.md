@@ -1,6 +1,8 @@
 # Niflheim
 PC平台游戏程序
 ## TODO
+#### 2019.09.06
+* - [x] BALDR_HEART项目字库生成程序基本完成，增加可生成指定宽高不同的字模，Width默认为0，需要此功能时不使用默认0即可
 #### 2019.08.22
 * - [x] 修正NeXAS的BALDR_HEART项目中，字库解压和封包bug
 * - [x] 新增NeXAS的BALDR_HEART项目中，字模生成程序添加条纹效果（Interval参数）以及渐变效果（Gradient参数）支持
