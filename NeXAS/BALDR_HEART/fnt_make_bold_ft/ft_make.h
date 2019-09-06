@@ -31,14 +31,14 @@ typedef struct _CharBitmap
 class FT_Make
 {
 public:
-	FT_Make(string font_path, DWORD font_height);
+	FT_Make(string font_path, DWORD font_height, DWORD font_width);
 	CharBitmap GetCharBitmap(WCHAR wchar);
 	~FT_Make();
 private:
 	FT_Library library;
 	FT_Face face;
 	FT_Error error;
-	bool FT_Init(string font_path, DWORD font_height);
+	bool FT_Init(string font_path, DWORD font_height, DWORD font_width);
 };
 BYTE* BuildOutline(DWORD width, DWORD height, BYTE* data, bool do_delete);
 void WritePng(FILE *pngfile, DWORD width, DWORD height, DWORD p_count, DWORD interval, DWORD gradient, DWORD fill, BYTE* data);

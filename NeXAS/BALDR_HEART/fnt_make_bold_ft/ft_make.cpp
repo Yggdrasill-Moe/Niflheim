@@ -1,15 +1,15 @@
 #include "ft_make.h"
 
-FT_Make::FT_Make(string font_path, DWORD font_height)
+FT_Make::FT_Make(string font_path, DWORD font_height, DWORD font_width)
 {
-	if (!FT_Init(font_path, font_height))
+	if (!FT_Init(font_path, font_height, font_width))
 	{
 		cout << "ft Init fail!\n";
 		exit(0);
 	}
 }
 
-bool FT_Make::FT_Init(string font_path, DWORD font_height)
+bool FT_Make::FT_Init(string font_path, DWORD font_height, DWORD font_width)
 {
 	FT_Error error;
 	ifstream infile;
@@ -37,13 +37,13 @@ bool FT_Make::FT_Init(string font_path, DWORD font_height)
 		cout << "New_Memory_Face Error!\n";
 		return false;
 	}
-	error = FT_Set_Char_Size(face, font_height * 64, font_height * 64, 0, 0);
+	error = FT_Set_Char_Size(face, font_width * 64, font_height * 64, 0, 0);
 	if (error)
 	{
 		cout << "Set_Char_Size Error!\n";
 		return false;
 	}
-	error = FT_Set_Pixel_Sizes(face, font_height, font_height);
+	error = FT_Set_Pixel_Sizes(face, font_width, font_height);
 	if (error)
 	{
 		cout << "Set_Pixel_Sizes Error!\n";
@@ -219,7 +219,7 @@ void WritePng(FILE *pngfile, DWORD width, DWORD height, DWORD p_count, DWORD int
 	src = new BYTE[width*height];//³õÊ¼ÏñËØÊý¾Ý
 	memset(src, 0, width*height);
 	for (i = 0; i < height - p_count * 2 - fill * 2; i++)
-		memcpy(src + p_count * width + fill*width/*³õÊ¼ÍùÏÂÆ«ÒÆÏñËØ*/ + i*width + p_count + fill/*ÍùÓÒÆ«ÒÆ¶àÉÙÏñËØ*/, data + i*(width - p_count * 2 - fill * 2), width - p_count * 2 - fill - 2);
+		memcpy(src + p_count * width + fill*width/*³õÊ¼ÍùÏÂÆ«ÒÆÏñËØ*/ + i*width + p_count + fill/*ÍùÓÒÆ«ÒÆ¶àÉÙÏñËØ*/, data + i*(width - p_count * 2 - fill * 2), width - p_count * 2 - fill * 2);
 	for (i = p_count; i > 0; i--)
 		if (i == p_count)
 			odata = BuildOutline(width - i * 2 - fill * 2, height - i * 2 - fill * 2, data, false);

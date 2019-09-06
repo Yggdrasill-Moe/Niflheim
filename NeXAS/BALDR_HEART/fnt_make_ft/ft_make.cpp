@@ -1,15 +1,15 @@
 #include "ft_make.h"
 
-FT_Make::FT_Make(string font_path, DWORD font_height)
+FT_Make::FT_Make(string font_path, DWORD font_height, DWORD font_width)
 {
-	if (!FT_Init(font_path, font_height))
+	if (!FT_Init(font_path, font_height, font_width))
 	{
 		cout << "ft Init fail!\n";
 		exit(0);
 	}
 }
 
-bool FT_Make::FT_Init(string font_path, DWORD font_height)
+bool FT_Make::FT_Init(string font_path, DWORD font_height, DWORD font_width)
 {
 	FT_Error error;
 	ifstream infile;
@@ -37,13 +37,13 @@ bool FT_Make::FT_Init(string font_path, DWORD font_height)
 		cout << "New_Memory_Face Error!\n";
 		return false;
 	}
-	error = FT_Set_Char_Size(face, font_height * 64, font_height * 64, 0, 0);
+	error = FT_Set_Char_Size(face, font_width * 64, font_height * 64, 0, 0);
 	if (error)
 	{
 		cout << "Set_Char_Size Error!\n";
 		return false;
 	}
-	error = FT_Set_Pixel_Sizes(face, font_height, font_height);
+	error = FT_Set_Pixel_Sizes(face, font_width, font_height);
 	if (error)
 	{
 		cout << "Set_Pixel_Sizes Error!\n";
