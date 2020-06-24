@@ -52,6 +52,20 @@ void UnpackFile(char *fname)
 		printf("filename:%s size:0x%X\n", dstname, Header.size);
 		data = malloc(Header.size);
 		fread(data, Header.size, 1, src);
+		if (strncmp(Header.magic, "CODE", 4) == 0)
+		{
+			unit8 key = 0, buff = 0;
+			for (unit32 i = 0; i < Header.size; i++)
+			{
+				//mov dl,al
+				//xor dl,cl
+				//add al,0x12
+				//add cl,al
+				buff = data[i];
+				data[i] ^= key;
+				key += (unit8)(buff + 0x12);
+			}
+		}
 		dst = fopen(dstname, "wb");
 		fwrite(data, Header.size, 1, dst);
 		free(data);

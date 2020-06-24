@@ -284,7 +284,7 @@ unit32 ReadInteger(FILE *src)
 	{
 		if ((opcode & 0xF8)!=0x80)
 		{
-			printf("opcode不为0x80！pos:0x%X count:0x%X\n", ftell(src) - 1, opcode);
+			printf("opcode不为0x80！pos:0x%X opcode:0x%X\n", ftell(src) - 1, opcode);
 			system("pause");
 			exit(0);
 		}
@@ -361,8 +361,14 @@ void ReadIndex(char *fname)
 				ReadString(src, arc_name);
 			else if (strncmp("arc-index", param_name, 9) == 0)
 				arc_index = ReadInteger(src);
-			else
+			else if (strncmp("arc-path", param_name, 8) == 0)
 				SkipObject(src);
+			else
+			{
+				printf("发现未知的参数名：%s offset:0x%X\n", param_name, ftell(src));
+				system("pause");
+				SkipObject(src);
+			}
 		}
 		if (strcmp(filename, arc_name) == 0)
 		{
@@ -418,17 +424,19 @@ void UnpackFile(char *fname)
 	{
 		fseek(src, i * 8 + 0x20, SEEK_SET);
 		fread(&offset, 8, 1, src);
-		fseek(src, (unit32)offset, SEEK_SET);
+		_fseeki64(src, offset, SEEK_SET);
 		fread(&IAR_Image_Header, sizeof(IAR_Image_Header), 1, src);
 		if (p->next != NULL)
 		{
 			p = p->next;
+			/*
+			纠错功能，但是如果sec5文件是官方补丁中的话，补丁文件起index就会不对
 			if (p->index != i)
 			{
 				printf("arc_index不对! index:%d 文件index:%d\n", p->index, i);
 				system("pause");
 				exit(0);
-			}
+			}*/
 			sprintf(dstname, p->filename);
 		}
 		else

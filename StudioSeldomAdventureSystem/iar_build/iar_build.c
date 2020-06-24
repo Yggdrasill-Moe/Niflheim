@@ -159,7 +159,7 @@ unit32 ReadInteger(FILE *src, FILE *dst, BOOL open)
 	{
 		if ((opcode & 0xF8) != 0x80)
 		{
-			printf("opcode不为0x80！pos:0x%X count:0x%X\n", ftell(src) - 1, opcode);
+			printf("opcode不为0x80！pos:0x%X opcode:0x%X\n", ftell(src) - 1, opcode);
 			system("pause");
 			exit(0);
 		}
@@ -206,6 +206,7 @@ void ReadString(FILE *src, FILE *dst, char *dstname, BOOL open)
 void Build_Name_Opcode(unit32 offset)
 {
 	unit8 *p = (unit8 *)&offset;
+	File_Opcode.name_opcode = 0;
 	for (unit32 i = 0; i < 4; i++)
 	{
 		File_Opcode.name_offset[i] = p[i];
@@ -220,6 +221,7 @@ void Build_Name_Opcode(unit32 offset)
 void Build_Index_Opcode(unit32 index)
 {
 	unit8 *p = (unit8 *)&index;
+	File_Opcode.index_opcode = 0;
 	for (unit32 i = 0; i < 4; i++)
 	{
 		File_Opcode.index_num[i] = p[i];
@@ -237,7 +239,7 @@ void Build_Index_Opcode(unit32 index)
 
 void WriteRES2(char *fname)
 {
-	unit32 opcode_off = 0, name_count = 0, param_count = 0, arc_index = 0, i = 0, j = 0, buff = 0;
+	unit32 opcode_off = 0, name_count = 0, param_count = 0, arc_index = 0, i = 0, j = 0, k = 0, buff = 0;
 	char name[MAX_PATH], type[MAX_PATH], arc_type[MAX_PATH], arc_name[MAX_PATH], param_name[MAX_PATH];
 	unit8 *data = NULL;
 	FILE *src = fopen("SEC5/RES2", "rb");
@@ -282,8 +284,14 @@ void WriteRES2(char *fname)
 				ReadString(src, dst, arc_name, TRUE);
 			else if (strncmp("arc-index", param_name, 9) == 0)
 				arc_index = ReadInteger(src, dst, TRUE);
-			else
+			else if (strncmp("arc-path", param_name, 8) == 0)
 				SkipObject(src, dst, TRUE);
+			else
+			{
+				printf("发现未知的参数名：%s offset:0x%X\n", param_name, ftell(src));
+				system("pause");
+				SkipObject(src, dst, TRUE);
+			}
 		}
 		for (j = 0; j < IAR_Header.file_num; j++)
 		{
@@ -303,7 +311,7 @@ void WriteRES2(char *fname)
 				param_count = ReadInteger(src, dst, TRUE);
 				arc_index = 0;
 				arc_name[0] = '\0';
-				for (j = 0; j < param_count; j++)
+				for (k = 0; k < param_count; k++)
 				{
 					ReadString(src, dst, param_name, TRUE);
 					if (strncmp("path", param_name, 4) == 0)
@@ -319,8 +327,14 @@ void WriteRES2(char *fname)
 						if (j >= 0x10)
 							fwrite(File_Opcode.index_num, File_Opcode.index_opcode - 0x80 + 1, 1, dst);
 					}
-					else
+					else if (strncmp("arc-path", param_name, 8) == 0)
 						SkipObject(src, dst, TRUE);
+					else
+					{
+						printf("发现未知的参数名：%s offset:0x%X\n", param_name, ftell(src));
+						system("pause");
+						SkipObject(src, dst, TRUE);
+					}
 				}
 				printf("arc_name:%s arc_index:%d arc_type:%s file_name:%s file_type:%s op_offset:0x%X\n", fname, i, arc_type, name, type, buff);
 				break;
@@ -363,12 +377,12 @@ void WriteIndex(char *fname)
 	WriteRES2(dstname);
 }
 
-unit8* ReadPng(FILE *pngfile)
+unit8* ReadPng(FILE *pngfile, char* filename)
 {
 	png_structp png_ptr;
 	png_infop info_ptr, end_ptr;
 	png_bytep *rows;
-	unit32 i, bpp = 0, format = 0;
+	unit32 i, width = 0, height = 0, bpp = 0, format = 0;
 	unit8 buff = 0, *bitmapdata = NULL, *dst_data = NULL;
 	png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if (png_ptr == NULL)
@@ -392,14 +406,25 @@ unit8* ReadPng(FILE *pngfile)
 	}
 	png_init_io(png_ptr, pngfile);
 	png_read_info(png_ptr, info_ptr);
-	png_get_IHDR(png_ptr, info_ptr, (png_uint_32*)&IAR_Image_Header.width, (png_uint_32*)&IAR_Image_Header.height, &bpp, &format, NULL, NULL, NULL);
+	png_get_IHDR(png_ptr, info_ptr, (png_uint_32*)&width, (png_uint_32*)&height, &bpp, &format, NULL, NULL, NULL);
+	if (width != IAR_Image_Header.width || height != IAR_Image_Header.height)
+	{
+		printf("图片的长宽与原图不符！%s org_width:%d org_height:%d width:%d height:%d\n", filename, IAR_Image_Header.width, IAR_Image_Header.height, width, height);
+		system("pause");
+		exit(0);
+	}
 	if (format == PNG_COLOR_TYPE_RGB_ALPHA)
 	{
-		if (IAR_Image_Header.flag != 0x3C)
+		if (IAR_Image_Header.flag != 0x3C && IAR_Image_Header.flag != 0x83C)
 		{
-			printf("原始图片的flag与png的bpp不对应,flag应为0x3C！flag:0x%X bpp:32\n", IAR_Image_Header.flag);
+			printf("原始图片的flag与png的bpp不对应,flag应为0x3C或0x83C！%s flag:0x%X bpp:32\n", filename, IAR_Image_Header.flag);
 			system("pause");
 			exit(0);
+		}
+		if (IAR_Image_Header.flag == 0x83C)
+		{
+			IAR_Image_Header.flag = 0x3C;
+			IAR_Image_Header.uncomprlen = IAR_Image_Header.stride * IAR_Image_Header.height;
 		}
 		IAR_Image_Header.comprlen = IAR_Image_Header.uncomprlen;
 		rows = (png_bytep*)malloc(IAR_Image_Header.height * sizeof(char*));
@@ -423,11 +448,16 @@ unit8* ReadPng(FILE *pngfile)
 	}
 	else if (format == PNG_COLOR_TYPE_RGB)
 	{
-		if (IAR_Image_Header.flag != 0x1C)
+		if (IAR_Image_Header.flag != 0x1C && IAR_Image_Header.flag != 0x81C)
 		{
-			printf("原始图片的flag与png的bpp不对应,flag应为0x1C！flag:0x%X bpp:24\n", IAR_Image_Header.flag);
+			printf("原始图片的flag与png的bpp不对应,flag应为0x1CC或0x81C！%s flag:0x%X bpp:24\n", filename, IAR_Image_Header.flag);
 			system("pause");
 			exit(0);
+		}
+		if (IAR_Image_Header.flag == 0x81C)
+		{
+			IAR_Image_Header.flag = 0x1C;
+			IAR_Image_Header.uncomprlen = IAR_Image_Header.stride * IAR_Image_Header.height;
 		}
 		IAR_Image_Header.comprlen = IAR_Image_Header.uncomprlen;
 		rows = (png_bytep*)malloc(IAR_Image_Header.height * sizeof(char*));
@@ -451,7 +481,7 @@ unit8* ReadPng(FILE *pngfile)
 	}
 	else if (format == PNG_COLOR_TYPE_PALETTE)
 	{
-		printf("索引图片未做处理！\n");
+		printf("索引图片未做处理！ %s\n", filename);
 		system("pause");
 		exit(0);
 	}
@@ -486,15 +516,15 @@ void PackFile(char *fname)
 		}
 		fseek(fp, sizeof(IAR_Header) + Index[i].index * 8, SEEK_SET);
 		fread(&offset, 8, 1, fp);
-		fseek(fp, (unit32)offset, SEEK_SET);
+		_fseeki64(fp, offset, SEEK_SET);
 		fread(&IAR_Image_Header, sizeof(IAR_Image_Header), 1, fp);
 		IAR_Image_Header.is_compress = 0;
 		fclose(fp);
 		_chdir(fname);
-		offset = ftell(dst);
+		offset = _ftelli64(dst);
 		Index[i].FileName[strlen(Index[i].FileName)] = '.';
 		src = fopen(Index[i].FileName, "rb");
-		data = ReadPng(src);
+		data = ReadPng(src, Index[i].FileName);
 		if (IAR_Image_Header.flag == 0x3C)
 			printf("\t%s offset:0x%llX stride:0x%X width:%d height:%d bpp:32 flag:0x%X uncomprlen:0x%X comprlen:0x%X\n", Index[i].FileName, offset, IAR_Image_Header.stride, IAR_Image_Header.width, IAR_Image_Header.height, IAR_Image_Header.flag, IAR_Image_Header.uncomprlen, IAR_Image_Header.comprlen);
 		else

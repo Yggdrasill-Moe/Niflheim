@@ -64,6 +64,15 @@ void PackFile(char *fname)
 		data = malloc(Header.size);
 		fread(data, Header.size, 1, fp);
 		fwrite(&Header, sizeof(Header), 1, dst);
+		if (strncmp(Header.magic, "CODE", 4) == 0)
+		{
+			unit8 key = 0;
+			for (unit32 i = 0; i < Header.size; i++)
+			{
+				data[i] ^= key;
+				key += (unit8)(data[i] + 0x12);
+			}
+		}
 		fwrite(data, Header.size, 1, dst);
 		free(data);
 		fclose(fp);

@@ -71,7 +71,7 @@ unit32 ReadNumber(FILE *src, unit32 length_code)
 	count = (length_code & 7) + 1;
 	if (count > 4)
 	{
-		printf("count大于4！pos:0x%X count:0x%X\n", ftell(src), count);
+		printf("count大于4！pos:0x%X opcode:0x%X\n", ftell(src), count);
 		system("pause");
 		exit(0);
 	}
@@ -98,7 +98,7 @@ unit32 ReadInteger(FILE *src)
 	{
 		if ((opcode & 0xF8) != 0x80)
 		{
-			printf("opcode不为0x80！pos:0x%X count:0x%X\n", ftell(src) - 1, opcode);
+			printf("opcode不为0x80！pos:0x%X opcode:0x%X\n", ftell(src) - 1, opcode);
 			system("pause");
 			exit(0);
 		}
@@ -175,8 +175,14 @@ void ReadIndex(char *fname)
 				ReadString(src, arc_name);
 			else if (strncmp("arc-index", param_name, 9) == 0)
 				arc_index = ReadInteger(src);
+			else if (strncmp("arc-path", param_name, 8) == 0)
+				ReadString(src, name);
 			else
+			{
+				printf("发现未知的参数名：%s offset:0x%X\n", param_name, ftell(src));
+				system("pause");
 				SkipObject(src);
+			}
 		}
 		if (strcmp(filename, arc_name) == 0)
 		{
@@ -188,6 +194,7 @@ void ReadIndex(char *fname)
 			//printf("arc_name:%s arc_index:%d arc_type:%s file_name:%s file_type:%s \n", arc_name, arc_index, arc_type, name, type);
 		}
 	}
+	fclose(src);
 }
 
 void ReadPng(FILE *pngfile, unit8 *bitmapdata,unit32 org_bpp)
@@ -338,17 +345,19 @@ void PackFile(char *fname)
 	{
 		fseek(src, i * 8 + 0x20, SEEK_SET);
 		fread(&offset, 8, 1, src);
-		fseek(src, (unit32)offset, SEEK_SET);
+		_fseeki64(src, offset, SEEK_SET);
 		fread(&IAR_Image_Header, sizeof(IAR_Image_Header), 1, src);
 		if (p->next != NULL)
 		{
 			p = p->next;
+			/*
+			纠错功能，但是如果sec5文件是官方补丁中的话，补丁文件起index就会不对
 			if (p->index != i)
 			{
-				printf("arc_index不对! index:%d 文件index:%d\n", p->index, i);
-				system("pause");
-				exit(0);
-			}
+			printf("arc_index不对! index:%d 文件index:%d\n", p->index, i);
+			system("pause");
+			exit(0);
+			}*/
 			sprintf(dstname, p->filename);
 		}
 		else
@@ -357,7 +366,7 @@ void PackFile(char *fname)
 		{
 			dst_data = malloc(IAR_Image_Header.uncomprlen);
 			memset(dst_data, 0, IAR_Image_Header.uncomprlen);
-			p->offset = ftell(dst);
+			p->offset = _ftelli64(dst);
 			if (IAR_Image_Header.flag == 0x3C)
 			{
 				IAR_Image_Header.is_compress = 0;
@@ -393,31 +402,33 @@ void PackFile(char *fname)
 			}
 			else if (IAR_Image_Header.flag == 0x83C)
 			{
+				IAR_Image_Header.is_compress = 0;
 				printf("\t%s offset:0x%llX stride:0x%X width:%d height:%d bpp:32 flag:0x%X ", dstname, p->offset, IAR_Image_Header.stride, IAR_Image_Header.width, IAR_Image_Header.height, IAR_Image_Header.flag);
-				printf("uncomprlen:0x%X comprlen:0x%X\n", IAR_Image_Header.uncomprlen, IAR_Image_Header.comprlen);
-				udata = malloc(IAR_Image_Header.comprlen);
-				fread(udata, IAR_Image_Header.comprlen, 1, src);
-				fwrite(&IAR_Image_Header, sizeof(IAR_Image_Header), 1, dst);
-				fwrite(udata, IAR_Image_Header.comprlen, 1, dst);
-				free(udata);
-				fseek(dst, i * 8 + 0x20, SEEK_SET);
-				fwrite(&p->offset, 8, 1, dst);
-				fseek(dst, 0, SEEK_END);
-				continue;
+				fp = fopen(dstname, "rb");
+				udata = malloc(IAR_Image_Header.width * IAR_Image_Header.height * 4);
+				ReadPng(fp, udata, 32);
+				fclose(fp);
+				IAR_Image_Header.flag = 0x3C;
+				IAR_Image_Header.uncomprlen = IAR_Image_Header.stride * IAR_Image_Header.height;
+				free(dst_data);
+				dst_data = malloc(IAR_Image_Header.uncomprlen);
+				for (j = 0; j < IAR_Image_Header.height; j++)
+					memcpy(&dst_data[j * IAR_Image_Header.stride], &udata[j * IAR_Image_Header.width * 4], IAR_Image_Header.width * 4);
 			}
 			else if (IAR_Image_Header.flag == 0x81C)
 			{
+				IAR_Image_Header.is_compress = 0;
 				printf("\t%s offset:0x%llX stride:0x%X width:%d height:%d bpp:24 flag:0x%X ", dstname, p->offset, IAR_Image_Header.stride, IAR_Image_Header.width, IAR_Image_Header.height, IAR_Image_Header.flag);
-				printf("uncomprlen:0x%X comprlen:0x%X\n", IAR_Image_Header.uncomprlen, IAR_Image_Header.comprlen);
-				udata = malloc(IAR_Image_Header.comprlen);
-				fread(udata, IAR_Image_Header.comprlen, 1, src);
-				fwrite(&IAR_Image_Header, sizeof(IAR_Image_Header), 1, dst);
-				fwrite(udata, IAR_Image_Header.comprlen, 1, dst);
-				free(udata);
-				fseek(dst, i * 8 + 0x20, SEEK_SET);
-				fwrite(&p->offset, 8, 1, dst);
-				fseek(dst, 0, SEEK_END);
-				continue;
+				fp = fopen(dstname, "rb");
+				udata = malloc(IAR_Image_Header.width * IAR_Image_Header.height * 3);
+				ReadPng(fp, udata, 24);
+				fclose(fp);
+				IAR_Image_Header.flag = 0x1C;
+				IAR_Image_Header.uncomprlen = IAR_Image_Header.stride * IAR_Image_Header.height;
+				free(dst_data);
+				dst_data = malloc(IAR_Image_Header.uncomprlen);
+				for (j = 0; j < IAR_Image_Header.height; j++)
+					memcpy(&dst_data[j * IAR_Image_Header.stride], &udata[j * IAR_Image_Header.width * 3], IAR_Image_Header.width * 3);
 			}
 			else
 			{

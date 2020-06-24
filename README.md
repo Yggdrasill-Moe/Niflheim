@@ -1,6 +1,9 @@
 # Niflheim
 PC平台游戏程序
 ## TODO
+#### 2020.06.24
+* - [x] StudioSeldomAdventureSystem项目（sec5）完成解包、封包、增加封包功能，经过了简单的测试，顺便修复了之前大量的bug，基于《恋色空模様》制作
+* StudioSeldomAdventureSystem项目（sec5）的文本文件（CODE）中的文本导入导出
 #### 2019.09.06
 * - [x] BALDR_HEART项目字库生成程序基本完成，增加可生成指定宽高不同的字模，Width默认为0，需要此功能时不使用默认0即可
 #### 2019.08.22
