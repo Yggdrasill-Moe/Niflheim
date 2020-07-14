@@ -228,13 +228,14 @@ void Build_Index_Opcode(unit32 index)
 		if (p[i] != 0)
 			File_Opcode.index_opcode++;
 	}
-	if (index >= 0x10)
+	if (index >= 0x7F)
 	{
-		File_Opcode.index_opcode--;
+		if (index >= 0x100)
+			File_Opcode.index_opcode--;
 		File_Opcode.index_opcode |= 0x80;
 	}
 	else
-		File_Opcode.index_opcode = index;
+		File_Opcode.index_opcode = 0x80;
 }
 
 void WriteRES2(char *fname)
@@ -324,8 +325,7 @@ void WriteRES2(char *fname)
 					{
 						arc_index = ReadInteger(src, dst, FALSE);
 						fwrite(&File_Opcode.index_opcode, 1, 1, dst);
-						if (j >= 0x10)
-							fwrite(File_Opcode.index_num, File_Opcode.index_opcode - 0x80 + 1, 1, dst);
+						fwrite(File_Opcode.index_num, File_Opcode.index_opcode - 0x80 + 1, 1, dst);
 					}
 					else if (strncmp("arc-path", param_name, 8) == 0)
 						SkipObject(src, dst, TRUE);
