@@ -20,6 +20,16 @@ str_op_name1 = b'\x20\x71\x00\x00\x00\x50\x23\x50\x13\x01\x24\x1E\x00\x00\x00\x0
 str_op_name2 = b'\x24\x13\x01\x3C\x50\x13\x03\x24\x1E\x00\x00\x00\x00'
 #与人名1配套 $n3<>n3$ 其中一个用处是控制多人说同一句话时对话框四散在画面上
 str_op_name3 = b'\x1B\x82\x02\x00'
+#与控制文本框位置用人名及立绘效果用人名配套 $n4<>n4$
+str_op_name4 = b'\x20\x79\x00\x00\x00\x50\x23\x50\x13\x01\x24\x1E\x00\x00\x00\x00'
+#与人名1配套 $n5<>n5$ 其中一个用处是控制对话框跟随人物在画面中的位置
+str_op_name5 = b'\x20\x77\x00\x00\x00\x50\x23\x50\x13\x01\x24\x1E\x00\x00\x00\x00'
+#其他人名 $on<>on$
+str_op_other_name = b'\x50\x23\x50\x13\x01\x24\x1E\x00\x00\x00\x00'
+#控制文本框位置用人名 $cn<>cn$
+str_op_control = b'\x1B\x86\x02\x00'
+#立绘效果用人名 $en<>en$
+str_op_effect = b'\x1B\x80\x02\x00'
 #特殊用途人名 $p<>p$ 前4字节记录整块长度(FastForwardOffAtSelection、MsgColorsByName、InterpolatePicture)其中MsgColorsByName为文字颜色根据人物变化功能，可在游戏设置中开启
 str_special_name = b'\x2A\x02\x13\x01\x24\x3A\x1E\x00\x00\x00\x00'
 #章节名 $c<>c$ 前4字节记录整块长度
@@ -147,6 +157,72 @@ def find_name3(data):
 		byte_list.append('$n3<'.encode('932') + data[str_offset_start2 + 4:str_offset_start2 + 4 + num] + '>n3$'.encode('932'))
 		byte_off[str_opcode_start] = (len(byte_list) - 1, byte2int(data[str_offset_start:str_offset_start + 4]) + 4 + 4, num)
 		str_offset_start = data.find(str_op_name3, str_offset_end)
+
+def find_name4(data):
+	str_offset_start = data.find(str_op_name4)
+	while str_offset_start != -1:
+		str_opcode_start = str_offset_start - 4
+		str_offset_start += len(str_op_name4)
+		num = byte2int(data[str_offset_start:str_offset_start + 4])
+		str_offset_end = str_offset_start + 4 + num
+		byte_list.append('$n4<'.encode('932') + data[str_offset_start + 4:str_offset_end] + '>n4$'.encode('932'))
+		byte_off[str_opcode_start] = (len(byte_list) - 1, byte2int(data[str_opcode_start:str_opcode_start + 4]) + 4, num)
+		str_offset_start = data.find(str_op_name4, str_offset_end)
+
+def find_name5(data):
+	str_offset_start = data.find(str_op_name5)
+	while str_offset_start != -1:
+		str_opcode_start = str_offset_start - 4
+		str_offset_start += len(str_op_name5)
+		num = byte2int(data[str_offset_start:str_offset_start + 4])
+		str_offset_end = str_offset_start + 4 + num
+		byte_list.append('$n5<'.encode('932') + data[str_offset_start + 4:str_offset_end] + '>n5$'.encode('932'))
+		byte_off[str_opcode_start] = (len(byte_list) - 1, byte2int(data[str_opcode_start:str_opcode_start + 4]) + 4, num)
+		str_offset_start = data.find(str_op_name5, str_offset_end)
+
+def find_other_name(data):
+	str_offset_start = data.find(str_op_other_name)
+	while str_offset_start != -1:
+		str_opcode_start = str_offset_start - 5 - 4
+		str_offset_start += len(str_op_other_name)
+		num = byte2int(data[str_offset_start:str_offset_start + 4])
+		str_offset_end = str_offset_start + 4 + num
+		if num != 0 and str_opcode_start not in byte_off:
+			byte_list.append('$on<'.encode('932') + data[str_offset_start + 4:str_offset_end] + '>on$'.encode('932'))
+			byte_off[str_opcode_start] = (len(byte_list) - 1, byte2int(data[str_opcode_start:str_opcode_start + 4]) + 4, num)
+		str_offset_start = data.find(str_op_other_name, str_offset_end)
+
+def find_control(data):
+	str_offset_start = data.find(str_op_control)
+	while str_offset_start != -1:
+		str_opcode_start = str_offset_start
+		str_offset_start += len(str_op_control)
+		num = byte2int(data[str_offset_start:str_offset_start + 4])
+		str_offset_end = str_offset_start + 4 + num
+		if data[str_offset_end] != 0x01:
+			print('标识符错误offset:0x%X opcode:0x%X'%(str_offset_end,data[str_offset_end]))
+			os.system('pause')
+			exit(0)
+		str_offset_start2 = str_offset_end + 1 + 4 + len(op_num_split)
+		num = byte2int(data[str_offset_start2:str_offset_start2 + 4])
+		str_offset_end2 = str_offset_start2 + 4 + num
+		byte_list.append('$cn<'.encode('932') + data[str_offset_start2 + 4:str_offset_end2] + '>cn$'.encode('932'))
+		block_num = len(str_op_control) + 4 + byte2int(data[str_offset_start:str_offset_start + 4]) + 1 + 4 + byte2int(data[str_offset_end + 1:str_offset_end + 1 + 4])
+		byte_off[str_opcode_start] = (len(byte_list) - 1, block_num, num)
+		str_offset_start = data.find(str_op_control, str_offset_end)
+
+def find_effect(data):
+	str_offset_start = data.find(str_op_effect)
+	while str_offset_start != -1:
+		str_opcode_start = str_offset_start
+		str_offset_start += len(str_op_effect)
+		num = byte2int(data[str_offset_start:str_offset_start + 4])
+		str_offset_end = str_offset_start + 4 + num
+		str_offset_start2 = str_offset_start + 4 + len(op_num_split)
+		num = byte2int(data[str_offset_start2:str_offset_start2 + 4])
+		byte_list.append('$en<'.encode('932') + data[str_offset_start2 + 4:str_offset_start2 + 4 + num] + '>en$'.encode('932'))
+		byte_off[str_opcode_start] = (len(byte_list) - 1, byte2int(data[str_offset_start:str_offset_start + 4]) + 4 + 4, num)
+		str_offset_start = data.find(str_op_effect, str_offset_end)
 
 def find_special_name(data):
 	str_offset_start = data.find(str_special_name)
@@ -449,8 +525,13 @@ def CODE_dump():
 	find_name1(data)
 	find_name2(data)
 	find_name3(data)
+	find_name4(data)
+	find_name5(data)
+	find_control(data)
+	find_effect(data)
 	find_special_name(data)
 	find_chapter(data)
+	find_other_name(data)
 	#find_jump(data)
 	#check_jump(data)
 	find_jump_plus(data)

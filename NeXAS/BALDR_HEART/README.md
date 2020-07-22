@@ -20,7 +20,7 @@ tutorial如果想还原原字体效果，需要在fnt_make_bold_ft.exe生成png�
 
 字体对应.txt为找到的fnt在游戏中使用到的地方，并非所有fnt都会使用，NeXAS_fnt_Shift-JIS.txt为所有fnt的编码对应，tbl_chs.txt用于生成中文字库使用的码表，可自行更改，本项目中使用的tbl.txt和tbl_chs.txt都为针对BALDR HEART制作。
 
-最好都用freetype2版的程序（有ft标志），非freetype2的程序后续并没有开发，因为用Windows API生成的效果巨 屎 无 比，所有抛弃了，仅供参考。
+最好都用freetype2版的程序（有ft标志），非freetype2的程序后续并没有开发，因为用Windows API生成的效果巨 屎 无 比，所以抛弃了，仅供参考。
 #### [游戏主程序]
 用的Themida壳，脱壳就顺带也破解了.....，根据dump的方法不同，可能需要自行修复一下IAT表，一般会少了D3DXAssembleShader、D3DXQuaternionMultiply，exe中有非常多文本，想完美汉化不得不脱壳。
 #### [文本]

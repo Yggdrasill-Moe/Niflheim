@@ -20,6 +20,16 @@ str_op_name1 = b'\x20\x71\x00\x00\x00\x50\x23\x50\x13\x01\x24\x1E\x00\x00\x00\x0
 str_op_name2 = b'\x24\x13\x01\x3C\x50\x13\x03\x24\x1E\x00\x00\x00\x00'
 #与人名1配套 $n3<>n3$ 其中一个用处是控制多人说同一句话时对话框四散在画面上
 str_op_name3 = b'\x1B\x82\x02\x00'
+#与控制文本框位置用人名及立绘效果用人名配套 $n4<>n4$
+str_op_name4 = b'\x20\x79\x00\x00\x00\x50\x23\x50\x13\x01\x24\x1E\x00\x00\x00\x00'
+#与人名1配套 $n5<>n5$ 其中一个用处是控制对话框跟随人物在画面中的位置
+str_op_name5 = b'\x20\x77\x00\x00\x00\x50\x23\x50\x13\x01\x24\x1E\x00\x00\x00\x00'
+#其他人名 $on<>on$
+str_op_other_name = b'\x50\x23\x50\x13\x01\x24\x1E\x00\x00\x00\x00'
+#控制文本框位置用人名 $cn<>cn$
+str_op_control = b'\x1B\x86\x02\x00'
+#立绘效果用人名 $en<>en$
+str_op_effect = b'\x1B\x80\x02\x00'
 #特殊用途人名 $p<>p$ 前4字节记录整块长度(FastForwardOffAtSelection、MsgColorsByName、InterpolatePicture)其中MsgColorsByName为文字颜色根据人物变化功能，可在游戏设置中开启
 str_special_name = b'\x2A\x02\x13\x01\x24\x3A\x1E\x00\x00\x00\x00'
 #章节名 $c<>c$ 前4字节记录整块长度
@@ -210,6 +220,30 @@ def build_opcode():
 		elif str_list[i].find('$n2<') != -1:
 			#line = replace_line(org_list[i].replace('$n2<','').replace('>n2$','').encode('932'))
 			line = replace_line(str_list[i].replace('$n2<','').replace('>n2$','').encode('936'))
+		#人名3
+		elif str_list[i].find('$n3<') != -1:
+			#line = replace_line(org_list[i].replace('$n3<','').replace('>n3$','').encode('932'))
+			line = replace_line(str_list[i].replace('$n3<','').replace('>n3$','').encode('936'))
+		#人名4
+		elif str_list[i].find('$n4<') != -1:
+			#line = replace_line(org_list[i].replace('$n4<','').replace('>n4$','').encode('932'))
+			line = replace_line(str_list[i].replace('$n4<','').replace('>n4$','').encode('936'))
+		#人名5
+		elif str_list[i].find('$n5<') != -1:
+			#line = replace_line(org_list[i].replace('$n5<','').replace('>n5$','').encode('932'))
+			line = replace_line(str_list[i].replace('$n5<','').replace('>n5$','').encode('936'))
+		#其他人名
+		elif str_list[i].find('$on<') != -1:
+			#line = replace_line(org_list[i].replace('$on<','').replace('>on$','').encode('932'))
+			line = replace_line(str_list[i].replace('$on<','').replace('>on$','').encode('936'))
+		#控制文本框位置用人名
+		elif str_list[i].find('$cn<') != -1:
+			#line = replace_line(org_list[i].replace('$cn<','').replace('>cn$','').encode('932'))
+			line = replace_line(str_list[i].replace('$cn<','').replace('>cn$','').encode('936'))
+		#立绘效果用人名
+		elif str_list[i].find('$en<') != -1:
+			#line = replace_line(org_list[i].replace('$en<','').replace('>en$','').encode('932'))
+			line = replace_line(str_list[i].replace('$en<','').replace('>en$','').encode('936'))
 		#特殊用途人名
 		elif str_list[i].find('$p<') != -1:
 			#line = replace_line(org_list[i].replace('$p<','').replace('>p$','').encode('932'))
@@ -343,6 +377,82 @@ def CODE_import():
 			offset_index,address_index = change_jump(str_num,len(line),end,offset_index,address_index)
 			line = str_op_name3 + int2byte(len(op_num_split) + 4 + len(line) + len(buff)) + op_num_split + int2byte(len(line)) + line + buff
 			dst.write(line)
+		#人名4
+		elif str_list[i].find('$n4<') != -1:
+			if str_list[i].count('$n4<') != str_list[i].count('>n4$'):
+				print('编号%d行前后标识符不匹配！%s'%(i,str_list[i]))
+				os.system('pause')
+				exit(0)
+			#line = replace_line(org_list[i].replace('$n4<','').replace('>n4$','').encode('932'))
+			line = replace_line(str_list[i].replace('$n4<','').replace('>n4$','').encode('936'))
+			block_num = int(script_list[i].split('|')[1]) - 4
+			str_num = int(script_list[i].split('|')[2])
+			buff = data[end + 4 + len(str_op_name4) + 4 + str_num:end + 4 + block_num]
+			offset_index,address_index = change_jump(str_num,len(line),end,offset_index,address_index)
+			line = str_op_name4 + int2byte(len(line)) + line + buff
+			dst.write(int2byte(len(line)))
+			dst.write(line)
+		#人名5
+		elif str_list[i].find('$n5<') != -1:
+			if str_list[i].count('$n5<') != str_list[i].count('>n5$'):
+				print('编号%d行前后标识符不匹配！%s'%(i,str_list[i]))
+				os.system('pause')
+				exit(0)
+			#line = replace_line(org_list[i].replace('$n5<','').replace('>n5$','').encode('932'))
+			line = replace_line(str_list[i].replace('$n5<','').replace('>n5$','').encode('936'))
+			block_num = int(script_list[i].split('|')[1]) - 4
+			str_num = int(script_list[i].split('|')[2])
+			buff = data[end + 4 + len(str_op_name5) + 4 + str_num:end + 4 + block_num]
+			offset_index,address_index = change_jump(str_num,len(line),end,offset_index,address_index)
+			line = str_op_name5 + int2byte(len(line)) + line + buff
+			dst.write(int2byte(len(line)))
+			dst.write(line)
+		#其他人名
+		elif str_list[i].find('$on<') != -1:
+			if str_list[i].count('$on<') != str_list[i].count('>on$'):
+				print('编号%d行前后标识符不匹配！%s'%(i,str_list[i]))
+				os.system('pause')
+				exit(0)
+			#line = replace_line(org_list[i].replace('$on<','').replace('>on$','').encode('932'))
+			line = replace_line(str_list[i].replace('$on<','').replace('>on$','').encode('936'))
+			block_num = int(script_list[i].split('|')[1]) - 4
+			str_num = int(script_list[i].split('|')[2])
+			buff = data[end + 4 + 5 + len(str_op_other_name) + 4 + str_num:end + 4 + block_num]
+			offset_index,address_index = change_jump(str_num,len(line),end,offset_index,address_index)
+			line = data[end + 4:end + 4 + 5] + str_op_other_name + int2byte(len(line)) + line + buff
+			dst.write(int2byte(len(line)))
+			dst.write(line)
+		#控制文本框位置用人名
+		elif str_list[i].find('$cn<') != -1:
+			if str_list[i].count('$cn<') != str_list[i].count('>cn$'):
+				print('编号%d行前后标识符不匹配！%s'%(i,str_list[i]))
+				os.system('pause')
+				exit(0)
+			#line = replace_line(org_list[i].replace('$cn<','').replace('>cn$','').encode('932'))
+			line = replace_line(str_list[i].replace('$cn<','').replace('>cn$','').encode('936'))
+			block_num = int(script_list[i].split('|')[1]) - 4
+			str_num = int(script_list[i].split('|')[2])
+			num = byte2int(data[end + len(str_op_control):end + len(str_op_control) + 4])
+			buff = data[end:end + len(str_op_control) + 4 + num + 1]
+			dst.write(buff)
+			offset_index,address_index = change_jump(str_num,len(line),end,offset_index,address_index)
+			line = op_num_split + int2byte(len(line)) + line + b'\xFF'
+			dst.write(int2byte(len(line)))
+			dst.write(line)
+		#立绘效果用人名
+		elif str_list[i].find('$en<') != -1:
+			if str_list[i].count('$en<') != str_list[i].count('>en$'):
+				print('编号%d行前后标识符不匹配！%s'%(i,str_list[i]))
+				os.system('pause')
+				exit(0)
+			#line = replace_line(org_list[i].replace('$en<','').replace('>en$','').encode('932'))
+			line = replace_line(str_list[i].replace('$en<','').replace('>en$','').encode('936'))
+			block_num = int(script_list[i].split('|')[1])
+			str_num = int(script_list[i].split('|')[2])
+			buff = data[end + len(str_op_effect)  + 4 + len(op_num_split) + 4 + str_num:end + block_num]
+			offset_index,address_index = change_jump(str_num,len(line),end,offset_index,address_index)
+			line = str_op_effect + int2byte(len(op_num_split) + 4 + len(line) + len(buff)) + op_num_split + int2byte(len(line)) + line + buff
+			dst.write(line)
 		#特殊用途人名
 		elif str_list[i].find('$p<') != -1:
 			if str_list[i].count('$p<') != str_list[i].count('>p$'):
@@ -382,7 +492,7 @@ def CODE_import():
 			str_num = int(script_list[i].split('|')[2])
 			#line = replace_line(org_list[i].encode('932'))
 			line = replace_line(str_list[i].replace('♪','♂').encode('936'))
-			#if i <= 5536 or i >= 5538:
+			#if i <= 754 or i >= 756:
 			#	line = replace_line(org_list[i].encode('932'))
 			#else:
 			#	line = replace_line(str_list[i].replace('♪','♂').encode('936'))
