@@ -18,6 +18,8 @@ str_op_select = b'\x20\x6C\x00\x00\x00\x50\x23\x50\x13\x01\x24\x1E\x00\x00\x00\x
 str_op_name1 = b'\x20\x71\x00\x00\x00\x50\x23\x50\x13\x01\x24\x1E\x00\x00\x00\x00'
 #人名 $n2<>n2$ 长度包括在$n1<>n1$的块里
 str_op_name2 = b'\x24\x13\x01\x3C\x50\x13\x03\x24\x1E\x00\x00\x00\x00'
+#立绘动作人名 $le<>le$ 长度包括在上级块里
+str_op_ename = b'\x24\x13\x01\x3C\x50\x13\x01\x24\x1E\x00\x00\x00\x00'
 #与人名1配套 $n3<>n3$ 其中一个用处是控制多人说同一句话时对话框四散在画面上
 str_op_name3 = b'\x1B\x82\x02\x00'
 #与控制文本框位置用人名及立绘效果用人名配套 $n4<>n4$
@@ -210,6 +212,17 @@ def find_control(data):
 		block_num = len(str_op_control) + 4 + byte2int(data[str_offset_start:str_offset_start + 4]) + 1 + 4 + byte2int(data[str_offset_end + 1:str_offset_end + 1 + 4])
 		byte_off[str_opcode_start] = (len(byte_list) - 1, block_num, num)
 		str_offset_start = data.find(str_op_control, str_offset_end)
+
+def find_ename(data):
+	str_offset_start = data.find(str_op_ename)
+	while str_offset_start != -1:
+		str_opcode_start = data.rfind(b'\x1B\x12\x00\x01',0,str_offset_start) + 4
+		str_offset_start += len(str_op_ename)
+		num = byte2int(data[str_offset_start:str_offset_start + 4])
+		str_offset_end = str_offset_start + 4 + num
+		byte_list.append('$le<'.encode('932') + data[str_offset_start + 4:str_offset_end] + '>le$'.encode('932'))
+		byte_off[str_opcode_start] = (len(byte_list) - 1, byte2int(data[str_opcode_start:str_opcode_start + 4]) + 4, num)
+		str_offset_start = data.find(str_op_ename, str_offset_end)
 
 def find_effect(data):
 	str_offset_start = data.find(str_op_effect)
@@ -528,6 +541,7 @@ def CODE_dump():
 	find_name4(data)
 	find_name5(data)
 	find_control(data)
+	find_ename(data)
 	find_effect(data)
 	find_special_name(data)
 	find_chapter(data)

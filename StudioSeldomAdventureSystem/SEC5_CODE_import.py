@@ -18,6 +18,8 @@ str_op_select = b'\x20\x6C\x00\x00\x00\x50\x23\x50\x13\x01\x24\x1E\x00\x00\x00\x
 str_op_name1 = b'\x20\x71\x00\x00\x00\x50\x23\x50\x13\x01\x24\x1E\x00\x00\x00\x00'
 #人名 $n2<>n2$ 长度包括在$n1<>n1$的块里
 str_op_name2 = b'\x24\x13\x01\x3C\x50\x13\x03\x24\x1E\x00\x00\x00\x00'
+#立绘动作人名 $le<>le$ 长度包括在上级块里
+str_op_ename = b'\x24\x13\x01\x3C\x50\x13\x01\x24\x1E\x00\x00\x00\x00'
 #与人名1配套 $n3<>n3$ 其中一个用处是控制多人说同一句话时对话框四散在画面上
 str_op_name3 = b'\x1B\x82\x02\x00'
 #与控制文本框位置用人名及立绘效果用人名配套 $n4<>n4$
@@ -220,6 +222,10 @@ def build_opcode():
 		elif str_list[i].find('$n2<') != -1:
 			#line = replace_line(org_list[i].replace('$n2<','').replace('>n2$','').encode('932'))
 			line = replace_line(str_list[i].replace('$n2<','').replace('>n2$','').encode('936'))
+		#立绘动作人名
+		elif str_list[i].find('$le<') != -1:
+			#line = replace_line(org_list[i].replace('$le<','').replace('>le$','').encode('932'))
+			line = replace_line(str_list[i].replace('$le<','').replace('>le$','').encode('936'))
 		#人名3
 		elif str_list[i].find('$n3<') != -1:
 			#line = replace_line(org_list[i].replace('$n3<','').replace('>n3$','').encode('932'))
@@ -437,6 +443,22 @@ def CODE_import():
 			dst.write(buff)
 			offset_index,address_index = change_jump(str_num,len(line),end,offset_index,address_index)
 			line = op_num_split + int2byte(len(line)) + line + b'\xFF'
+			dst.write(int2byte(len(line)))
+			dst.write(line)
+		#立绘动作人名
+		elif str_list[i].find('$le<') != -1:
+			if str_list[i].count('$le<') != str_list[i].count('>le$'):
+				print('编号%d行前后标识符不匹配！%s'%(i,str_list[i]))
+				os.system('pause')
+				exit(0)
+			#line = replace_line(org_list[i].replace('$le<','').replace('>le$','').encode('932'))
+			line = replace_line(str_list[i].replace('$le<','').replace('>le$','').encode('936'))
+			block_num = int(script_list[i].split('|')[1])
+			str_num = int(script_list[i].split('|')[2])
+			str_offset_start = data.find(str_op_ename,end)
+			buff = data[end + 4:str_offset_start] + str_op_ename + int2byte(len(line)) + line
+			offset_index,address_index = change_jump(str_num,len(line),end,offset_index,address_index)
+			line = buff + data[end + 4 + (str_offset_start - end - 4) + len(str_op_ename) + 4 + str_num:end + 4 + block_num - 4]
 			dst.write(int2byte(len(line)))
 			dst.write(line)
 		#立绘效果用人名

@@ -223,11 +223,13 @@ void Build_Index_Opcode(unit32 index)
 	unit8 *p = (unit8 *)&index;
 	File_Opcode.index_opcode = 0;
 	for (unit32 i = 0; i < 4; i++)
-	{
 		File_Opcode.index_num[i] = p[i];
-		if (p[i] != 0)
-			File_Opcode.index_opcode++;
-	}
+	if (index < 0x100)
+		File_Opcode.index_opcode = 1;
+	else if (index < 0x10000)
+		File_Opcode.index_opcode = 2;
+	else if (index < 0x1000000)
+		File_Opcode.index_opcode = 3;
 	if (index >= 0x7F)
 	{
 		if (index >= 0x100)
