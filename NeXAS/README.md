@@ -1,4 +1,4 @@
-# Niflheim-BALDR HEART
+# Niflheim-NeXAS
 用于处理NeXAS引擎，针对BALDR HEART
 ## [Base on]
 giga_text_dump.py:https://github.com/Inori/FuckGalEngine/blob/master/GIGA/giga_text_out.py
