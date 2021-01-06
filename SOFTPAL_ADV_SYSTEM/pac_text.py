@@ -59,6 +59,13 @@ def pack():
 	fp = open('SCRIPT.SRC','rb')
 	ofp = open('SCRIPT.SRC_NEW','wb')
 	dfp = open('script.txt','r',encoding='utf16')
+	tbl = open('tbl.txt','r',encoding='utf16')
+	dicts = {}
+	for rows in tbl:
+		row = rows.rstrip('\r\n').split('=')
+		if len(row) == 3:
+			row[1] = '='
+		dicts[row[1]]=int(row[0],16)
 	buff = fp.read(os.path.getsize('SCRIPT.SRC'))
 	ofp.write(buff)
 	dict = {}
@@ -73,15 +80,26 @@ def pack():
 		if rows[0] != '●':
 			continue
 		row = rows[1:].rstrip('\r\n').split('●')
-		if int(row[0]) >= 0x175:
-			ofp.seek(dict[str(int(row[0]))])
-			ofp.write(int2byte(dst.tell()))
-			line = row[1].encode('936',errors='ignore')
-		else:
-			line = row[1].encode('932')
-		num = int2byte(int(row[0]))
-		dst.write(num)
-		dst.write(line)
+		try:
+			if int(row[0]) >= 0x175:
+				ofp.seek(dict[str(int(row[0]))])
+				ofp.write(int2byte(dst.tell()))
+				num = int2byte(int(row[0]))
+				dst.write(num)
+				for ch in row[1]:
+					if dicts[ch] > 0xFF:
+						dst.write(struct.pack('>H',dicts[ch]))
+					else:
+						dst.write(struct.pack('B',dicts[ch]))
+			else:
+				line = row[1].encode('932')
+				num = int2byte(int(row[0]))
+				dst.write(num)
+				dst.write(line)
+		except Exception as inst:
+			print(row[0])
+			print(inst)
+			#os.system("pause")
 		dst.write(struct.pack('B',0))
 
 def main():

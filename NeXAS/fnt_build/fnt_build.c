@@ -55,7 +55,7 @@ unit8* ReadIndex(char *fname,unit8* fntname,unit32 *savepos)
 		printf("文件头不是FNT\0!");
 		exit(0);
 	}
-	if (strncmp(fname, "systemascii", 11) != 0 && strncmp(fname, "systemtutorial", 14) != 0)
+	if (strncmp(fname, "systemascii", 11) != 0 && strncmp(fname, "systemtutorial", 14) != 0 && strncmp(fname, "system10b", 9))
 	{
 		fread(fnt_header.magic2, 1, 9, src);
 		fread(&fnt_header.flag, 1, 2, src);
@@ -112,7 +112,9 @@ unit8* ReadIndex(char *fname,unit8* fntname,unit32 *savepos)
 			memcpy(&font_info[i], &udata[i * 0xC], 0xC);
 	}
 	printf("font_count:%d\n", font_count);
+#ifdef DEBUG
 	system("pause");
+#endif // DEBUG
 	return udata;
 }
 
@@ -211,7 +213,7 @@ void WriteFntFile(char *fname)
 	fclose(dst);
 	dst = fopen(dstname, "wb");
 	fwrite(fnt_header.magic, 1, 4, dst);
-	if (strncmp(fname, "systemascii", 11) != 0 && strncmp(fname, "systemtutorial", 14) != 0)
+	if (strncmp(fname, "systemascii", 11) != 0 && strncmp(fname, "systemtutorial", 14) != 0 && strncmp(fname, "system10b", 9))
 	{
 		fwrite(fnt_header.magic2, 1, 9, dst);
 		fwrite(&fnt_header.flag, 1, 2, dst);
@@ -301,6 +303,8 @@ int main(int argc, char *argv[])
 	setlocale(LC_ALL, "chs");
 	printf("project：Niflheim-BALDR HEART\n用于将png合成fnt。\n将fnt文件拖到程序上。\nby Darkness-TX 2016.12.20\n\n");
 	WriteFntFile(argv[1]);
+#ifdef DEBUG
 	system("pause");
+#endif // DEBUG
 	return 0;
 }

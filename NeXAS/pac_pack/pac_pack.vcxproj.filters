@@ -15,12 +15,12 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="pac_unpack.c">
+    <ClCompile Include="pac_pack.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BH_huffman_dec.h">
+    <ClInclude Include="Huffman_comp.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

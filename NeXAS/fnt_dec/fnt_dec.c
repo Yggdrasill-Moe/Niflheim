@@ -94,7 +94,7 @@ void ReadIndex(FILE *src, char *fname)
 		system("pause");
 		exit(0);
 	}
-	if (strncmp(fname, "systemascii", 11) != 0 && strncmp(fname, "systemtutorial", 14) != 0)
+	if (strncmp(fname, "systemascii", 11) != 0 && strncmp(fname, "systemtutorial", 14) != 0 && strncmp(fname, "system10b", 9))
 	{
 		fread(fnt_header.magic2, 1, 9, src);
 		fread(&fnt_header.flag, 1, 2, src);
@@ -153,7 +153,9 @@ void ReadIndex(FILE *src, char *fname)
 			memcpy(&font_info[i], &udata[i * 0xC], 0xC);
 	}
 	printf("font_count:%d\n", font_count);
+#ifdef DEBUG
 	system("pause");
+#endif // DEBUG
 	free(udata);
 }
 
@@ -211,6 +213,8 @@ int main(int argc, char *argv[])
 	setlocale(LC_ALL, "chs");
 	printf("project：Niflheim-BALDR HEART\n用于解压BH的fnt字体文件索引并将字模导出成png。\n将fnt文件拖到程序上。\nby Darkness-TX 2016.12.05\n\n");
 	WritePngFile(argv[1]);
+#ifdef DEBUG
 	system("pause");
+#endif // DEBUG
 	return 0;
 }

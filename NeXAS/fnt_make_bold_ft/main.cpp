@@ -62,7 +62,9 @@ int main(int agrc, char* agrv[])
 		fclose(tbl_txt);
 		fclose(tbl_xy);
 		fclose(tbl_cell);
+#ifdef DEBUG
 		system("pause");
+#endif // DEBUG
 		return 0;
 	}
 }

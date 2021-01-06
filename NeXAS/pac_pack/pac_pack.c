@@ -1,7 +1,11 @@
 /*
-用于解包BH的pac文件
+用于封包NeXAS引擎的pac文件
 made by Darkness-TX
 2016.12.01
+
+添加新版NeXAS支持
+upload by AyamiKaze
+2020.03.18
 */
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
@@ -10,9 +14,10 @@ made by Darkness-TX
 #include <io.h>
 #include <direct.h>
 #include <Windows.h>
+#include <zstd.h>
 #include <zlib.h>
 #include <locale.h>
-#include "BH_huffman_comp.h"
+#include "Huffman_comp.h"
 
 typedef unsigned char  unit8;
 typedef unsigned short unit16;
@@ -178,7 +183,7 @@ void PackFile(char *fname)
 		cdata = malloc(Index[i].ComSize);
 		Index[i].Offset = ftell(dst);
 		fread(udata, 1, Index[i].FileSize, src);
-		//mode = 4时，已知fnt、png文件不进行压缩，如果压缩了会无法读取
+		//mode >= 4时，已知fnt、png文件不进行压缩，如果压缩了会无法读取
 		if (wcscmp(bname, L"fnt") == 0 || wcscmp(bname, L"png") == 0)
 		{
 			fwrite(udata, 1, Index[i].FileSize, dst);
@@ -219,7 +224,7 @@ void PackFile(char *fname)
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "chs");
-	printf("project：Niflheim-BALDR HEART\n用于封包BH的pac文件。\n将文件夹拖到程序上。\nby Darkness-TX 2016.12.02\n\n");
+	printf("project：Niflheim-NeXAS\n用于封包BH的pac文件。\n将文件夹拖到程序上。\nby Darkness-TX 2016.12.02\n\n添加新版NeXAS封包支持\nby AyamiKaze 2020.03.18\n\n");
 	//ReadIndex(argv[1]);
 	//packFileNoIndex(argv[1]);
 	process_dir(argv[1]);
