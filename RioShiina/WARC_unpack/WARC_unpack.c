@@ -4,17 +4,8 @@ made by Darkness-TX
 2018.05.04
 */
 #define _CRT_SECURE_NO_WARNINGS
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <io.h>
-#include <direct.h>
-#include <Windows.h>
-#include <locale.h>
-#include <math.h>
-#include <zlib.h>
-#include <png.h>
 #include "WARC_Decompress.h"
+#include <png.h>
 #define PI 3.1415926535897931
 
 typedef unsigned char  unit8;
@@ -27,7 +18,7 @@ struct warc_header
 	unit32 index_offset;
 }WARC_Header;
 
-struct warc_info{
+struct warc_info {
 	unit8 name[32];
 	unit32 offset;
 	unit32 comprlen;
@@ -40,10 +31,25 @@ unit32 FileNum = 0;//总文件数，初始计数为0
 
 unit32 Rand = 0;
 char WARC_key[MAX_PATH];
-unit32 Version = 0;//BR是2.48版本,2480或者0x9B0
+unit32 Version = 0;//BR是2.48版本,2480或者0x9B0,SJ是2.50版本或者0x9C4
 unit8 *RioShiinaImage = NULL;//RioShiina图片
 unit8 *Region = NULL;//RioShiina2.png的BGRA排列
+unit8 *Extra = NULL;//诡异的东西
+/*
+第三张图，绿底裸女，不知是哪个傻屌的硬盘中翻出来的，
+2.50版本出现，不知道其他是否通用，解密和之前的算法差不多，
+不过直接在exe中搜索PNG头没有找到，从函数的调用来看或许是运行时动态解压到内存的，
+判断方法是搜索push 202和push 204，跟踪push 202那个，
+然后会调用GetProcAddress之后跳转到了内存中的解密函数。
+烦的一匹，实在没什么可说的，吔屎！！！
+*/
+unit8 *ExtraImage = NULL;
+unit32 Seed = 0;
 unit32 key_src[5] = { 0, 0, 0, 0, 0 };
+/*flag & 0x40000000 == 1时要用到，但是有些时候又不需要，很奇特，搜0x40000000然后跳转，
+其中有块0x2000的内存，就是TM的decrypt2所在的那块内存，绝了
+*/
+unit8 *DecodeBin = NULL;
 
 unit32 warc_max_index_length(unit32 WARC_version)
 {
@@ -138,6 +144,8 @@ void ReadPng(FILE* src)
 
 void Init()
 {
+	FILE *src = NULL;
+	unit32 size = 0;
 	wchar_t filePath[MAX_PATH];
 	wchar_t dirPath[MAX_PATH];
 	wchar_t iniPath[MAX_PATH];
@@ -171,7 +179,7 @@ void Init()
 		exit(0);
 	}
 	wprintf(L"Image:%ls\n", filePath);
-	FILE *src = _wfopen(filePath, L"rb");
+	src = _wfopen(filePath, L"rb");
 	if (src == NULL)
 	{
 		wprintf(L"初始化图片失败，请确认目录下是否含有%ls\n", filePath);
@@ -179,7 +187,7 @@ void Init()
 		exit(0);
 	}
 	fseek(src, 0, SEEK_END);
-	unit32 size = ftell(src);
+	size = ftell(src);
 	RioShiinaImage = malloc(size);
 	fseek(src, 0, SEEK_SET);
 	fread(RioShiinaImage, size, 1, src);
@@ -201,6 +209,75 @@ void Init()
 	}
 	ReadPng(src);
 	fclose(src);
+	if (Version == 2500)
+	{
+		GetPrivateProfileStringW(L"RioShiina", L"Seed", L"0", buff, MAX_PATH, iniPath);
+		Seed = CheckString(buff);
+		wprintf(L"Seed:0x%X\n\n", Seed);
+		GetPrivateProfileStringW(L"Image", L"ExtraImage", L"", filePath, MAX_PATH, iniPath);
+		if (wcscmp(filePath, L"") == 0)
+		{
+			wprintf(L"初始化图片失败，请确认RioShiina.ini中ExtraImage属性是否有值\n");
+			system("pause");
+			exit(0);
+		}
+		wprintf(L"ExtraImage:%ls\n\n", filePath);
+		src = _wfopen(filePath, L"rb");
+		if (src == NULL)
+		{
+			wprintf(L"初始化图片失败，请确认目录下是否含有%ls\n", filePath);
+			system("pause");
+			exit(0);
+		}
+		fseek(src, 0, SEEK_END);
+		size = ftell(src);
+		ExtraImage = malloc(size);
+		fseek(src, 0, SEEK_SET);
+		fread(ExtraImage, size, 1, src);
+		fclose(src);
+		GetPrivateProfileStringW(L"RioShiina", L"DecodeBin", L"", filePath, MAX_PATH, iniPath);
+		if (wcscmp(filePath, L"") == 0)
+		{
+			wprintf(L"初始化失败，请确认RioShiina.ini中DecodeBin属性是否有值\n");
+			system("pause");
+			exit(0);
+		}
+		wprintf(L"DecodeBin:%ls\n\n", filePath);
+		src = _wfopen(filePath, L"rb");
+		if (src == NULL)
+		{
+			wprintf(L"初始化失败，请确认目录下是否含有%ls\n", filePath);
+			system("pause");
+			exit(0);
+		}
+		fseek(src, 0, SEEK_END);
+		size = ftell(src);
+		DecodeBin = malloc(size);
+		fseek(src, 0, SEEK_SET);
+		fread(DecodeBin, size, 1, src);
+		fclose(src);
+		GetPrivateProfileStringW(L"RioShiina", L"Extra", L"", filePath, MAX_PATH, iniPath);
+		if (wcscmp(filePath, L"") == 0)
+		{
+			wprintf(L"初始化失败，请确认RioShiina.ini中Extra属性是否有值\n");
+			system("pause");
+			exit(0);
+		}
+		wprintf(L"Extra:%ls\n\n", filePath);
+		src = _wfopen(filePath, L"rb");
+		if (src == NULL)
+		{
+			wprintf(L"初始化失败，请确认目录下是否含有%ls\n", filePath);
+			system("pause");
+			exit(0);
+		}
+		fseek(src, 0, SEEK_END);
+		size = ftell(src);
+		Extra = malloc(size);
+		fseek(src, 0, SEEK_SET);
+		fread(Extra, size, 1, src);
+		fclose(src);
+	}
 }
 
 unit32* InitCrcTable()
@@ -209,7 +286,7 @@ unit32* InitCrcTable()
 	for (unit32 i = 0; i != 256; ++i)
 	{
 		unit32 poly = i;
-		for (int j = 0; j < 8; ++j)
+		for (unit32 j = 0; j < 8; ++j)
 		{
 			unit32 bit = poly & 1;
 			poly = (poly >> 1) | (poly << 31);
@@ -219,6 +296,21 @@ unit32* InitCrcTable()
 		table[i] = poly;
 	}
 	return table;
+}
+
+unit32 crc32_get(unit32 init_crc, unit8 *data, unit32 length)
+{
+	unit32 result = init_crc, j = 0, c = 0, i = 0;
+	for (i = 0; i < length; i++)
+	{
+		result = (data[i] << 24) ^ result;
+		for (j = 0; j < 8; j++)
+		{
+			c = result < 0x80000000 ? 0 : 0x4C11DB7;
+			result = (result << 1) ^ c;
+		}
+	}
+	return result;
 }
 
 unit32 RegionCrc32(unit8 *src, unit32 flags, unit32 rgb)
@@ -500,9 +592,9 @@ char *WARC_key_string(unit32 WARC_version)
 void decrypt(unit32 WARC_version, unit8 *cipher, unit32 cipher_length)
 {
 	int a, b;
-	unit32 fac = 0, idx = 0, index = 0;
+	unit32 fac = 0, idx = 0, index = 0, _cipher_length = cipher_length, ImageSize = 0;
+	unit8 *Image = NULL;
 	Rand = cipher_length;
-	unit32 _cipher_length = cipher_length;
 	if (cipher_length < 3)
 		return;
 	if (cipher_length > 1024)
@@ -513,10 +605,22 @@ void decrypt(unit32 WARC_version, unit8 *cipher, unit32 cipher_length)
 		b = (char)cipher[1] ^ (char)(_cipher_length / 2);
 		if (_cipher_length != warc_max_index_length(170))
 		{
-			idx = (unit32)((double)get_rand() * (_msize(RioShiinaImage) / 4294967296.0));
+			if (Version == 2500)
+				ImageSize = _msize(RioShiinaImage) + _msize(Extra);
+			else
+				ImageSize = _msize(RioShiinaImage);
+			Image = malloc(ImageSize);
+			if (Version == 2500)
+			{
+				memcpy(Image, RioShiinaImage, _msize(RioShiinaImage));
+				memcpy(Image + _msize(RioShiinaImage), Extra, _msize(Extra));
+			}
+			else
+				memcpy(Image, RioShiinaImage, _msize(RioShiinaImage));
+			idx = (unit32)((double)get_rand() * (_msize(Image) / 4294967296.0));
 			if (WARC_version >= 160)
 			{
-				fac = RioShiinaImage[idx] + Rand;
+				fac = Image[idx] + Rand;
 				fac = decrypt_helper3(fac) & 0xfffffff;
 				if (cipher_length > 0x80)
 				{
@@ -527,7 +631,7 @@ void decrypt(unit32 WARC_version, unit8 *cipher, unit32 cipher_length)
 			}
 			else if (WARC_version == 150)
 			{
-				fac = Rand + RioShiinaImage[idx];
+				fac = Rand + Image[idx];
 				fac ^= (fac & 0xfff) * (fac & 0xfff);
 				unit32 v = 0;
 				for (unit32 i = 0; i < 32; ++i)
@@ -540,15 +644,16 @@ void decrypt(unit32 WARC_version, unit8 *cipher, unit32 cipher_length)
 				fac = v;
 			}
 			else if (WARC_version == 140)
-				fac = RioShiinaImage[idx];
+				fac = Image[idx];
 			else if (WARC_version == 130)
-				fac = RioShiinaImage[idx & 0xff];
+				fac = Image[idx & 0xff];
 			else
 			{
 				printf("不支持的WARC版本! WARC_version:%d\n", WARC_version);
 				system("pause");
 				exit(0);
 			}
+			free(Image);
 		}
 	}
 	else
@@ -580,6 +685,49 @@ void decrypt(unit32 WARC_version, unit8 *cipher, unit32 cipher_length)
 		i = cipher[index + k] % key_string_len;
 		if (n >= key_string_len)
 			n = 0;
+	}
+}
+
+void extra_decrypt(unit8 *data, unit32 length, unit32 flags)
+{
+	unit32 table_length = _msize(ExtraImage), i = 0, k = 0;
+	if (length >= 0x400)
+	{
+		if (flags == 0x202)
+		{
+			k = Seed;
+			for (i = 0; i < 0x100; i++)
+			{
+				k = 0x343FD * k + 0x269EC3;
+				data[i] ^= ExtraImage[((int)(k >> 16) & 0x7FFF) % table_length];
+			}
+		}
+		else if (flags == 0x204)
+		{
+			data[0x200] ^= (unit8)Seed;
+			data[0x201] ^= (unit8)(Seed >> 8);
+			data[0x202] ^= (unit8)(Seed >> 16);
+			data[0x203] ^= (unit8)(Seed >> 24);
+		}
+	}
+}
+
+void decrypt2(unit8 *data, unit32 length)
+{
+	if (length >= 0x400)
+	{
+		unit32 crc = crc32_get(0xFFFFFFFF, data, 0x100);
+		unit32 index = 0x100;
+		for (unit32 i = 0; i < 0x40; ++i)
+		{
+			unit32 src = *(unit32 *)&data[index] & 0x1FFC;
+			src = *(unit32 *)&DecodeBin[src];
+			unit32 key = src ^ crc;
+			data[index++ + 0x100] ^= (byte)key;
+			data[index++ + 0x100] ^= (byte)(key >> 8);
+			data[index++ + 0x100] ^= (byte)(key >> 16);
+			data[index++ + 0x100] ^= (byte)(key >> 24);
+		}
 	}
 }
 
@@ -650,7 +798,9 @@ void UnpackFile(char *fname)
 	unit32 i = 0;
 	unit8 *cdata = NULL, *udata = NULL;
 	unit32 sig = 0, uncomprlen = 0;
+	unit32 dsize = 0;
 	char dstname[MAX_PATH];
+	WCHAR wdstname[MAX_PATH];
 	src = fopen(fname, "rb");
 	sprintf(dstname, "%s_unpack", fname);
 	_mkdir(dstname);
@@ -658,6 +808,10 @@ void UnpackFile(char *fname)
 	for (i = 0; i < FileNum; i++)
 	{
 		sprintf(dstname, "%04d_%s", i, WARC_Info[i].name);
+		//那种冗余的、没用的文件的文件名会包含半角平假片假，可以不解包出来，但导出的话就要宽字节了
+		dsize = MultiByteToWideChar(932, 0, dstname, strlen(dstname), NULL, 0);
+		MultiByteToWideChar(932, 0, dstname, strlen(dstname), wdstname, dsize);
+		wdstname[dsize] = L'\0';
 		printf("%s offset:0x%X comprlen:0x%X uncomprlen:0x%X flags:0x%X ", WARC_Info[i].name, WARC_Info[i].offset, WARC_Info[i].comprlen, WARC_Info[i].uncomprlen, WARC_Info[i].flags);
 		fseek(src, WARC_Info[i].offset, SEEK_SET);
 		if (WARC_Info[i].comprlen < 8)
@@ -665,7 +819,7 @@ void UnpackFile(char *fname)
 			printf("type:nocompress");
 			cdata = malloc(WARC_Info[i].comprlen);
 			fread(cdata, WARC_Info[i].comprlen, 1, src);
-			dst = fopen(dstname, "wb");
+			dst = _wfopen(wdstname, L"wb");
 			fwrite(cdata, WARC_Info[i].comprlen, 1, dst);
 			free(cdata);
 			fclose(dst);
@@ -678,7 +832,13 @@ void UnpackFile(char *fname)
 			cdata = malloc(WARC_Info[i].comprlen - 8);
 			fread(cdata, WARC_Info[i].comprlen - 8, 1, src);
 			if (WARC_Info[i].flags & 0x80000000)
+			{
 				decrypt(170, cdata, WARC_Info[i].comprlen - 8);
+				if (Version == 2500)
+					extra_decrypt(cdata, WARC_Info[i].comprlen - 8, 0x202);
+			}
+			if (WARC_Info[i].flags & 0x20000000)
+				decrypt2(cdata, WARC_Info[i].comprlen - 8);
 			if ((sig & 0xFFFFFF) == 0x4B5059)//YPK
 			{
 				printf("type:YPK");
@@ -686,12 +846,10 @@ void UnpackFile(char *fname)
 				YPK_decompress(cdata, udata, WARC_Info[i].comprlen - 8, WARC_Info[i].uncomprlen, sig);
 				free(cdata);
 				if (WARC_Info[i].flags & 0x40000000)
-				{
-					printf("未处理flags & 0x40000000\n");
-					system("pause");
-					exit(0);
-				}
-				dst = fopen(dstname, "wb");
+					decrypt2(udata, WARC_Info[i].uncomprlen);
+				if (Version == 2500)
+					extra_decrypt(udata, WARC_Info[i].uncomprlen, 0x204);
+				dst = _wfopen(wdstname, L"wb");
 				fwrite(udata, WARC_Info[i].uncomprlen, 1, dst);
 				free(udata);
 				fclose(dst);
@@ -703,12 +861,10 @@ void UnpackFile(char *fname)
 				YH1_decompress(cdata, udata, WARC_Info[i].comprlen - 8, WARC_Info[i].uncomprlen, sig);
 				free(cdata);
 				if (WARC_Info[i].flags & 0x40000000)
-				{
-					printf("未处理flags & 0x40000000\n");
-					system("pause");
-					exit(0);
-				}
-				dst = fopen(dstname, "wb");
+					decrypt2(udata, WARC_Info[i].uncomprlen);
+				if (Version == 2500)
+					extra_decrypt(udata, WARC_Info[i].uncomprlen, 0x204);
+				dst = _wfopen(wdstname, L"wb");
 				fwrite(udata, WARC_Info[i].uncomprlen, 1, dst);
 				free(udata);
 				fclose(dst);
@@ -723,8 +879,8 @@ void UnpackFile(char *fname)
 			else
 			{
 				printf("type:nocompress");
-				dst = fopen(dstname, "wb");
 				sig ^= (uncomprlen ^ 0x82AD82) & 0xFFFFFF;//未压缩，还原回去
+				dst = _wfopen(wdstname, L"wb");
 				fwrite(&sig, 4, 1, dst);
 				fwrite(&uncomprlen, 4, 1, dst);
 				fwrite(cdata, WARC_Info[i].comprlen - 8, 1, dst);
@@ -740,7 +896,7 @@ void UnpackFile(char *fname)
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "chs");
-	printf("project：Niflheim-BLOODY RONDO\n用于解包文件头为WARC 1.7的WAR文件。\n将war文件拖到程序上。\nby Darkness-TX 2018.05.03\n\n");
+	printf("project：Niflheim-RioShiina\n用于解包文件头为WARC 1.7的WAR文件。\n将war文件拖到程序上。\nby Darkness-TX 2018.05.03\n\n");
 	ReadIndex(argv[1]);
 	Init();
 	UnpackFile(argv[1]);
