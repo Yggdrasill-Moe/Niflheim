@@ -1,6 +1,11 @@
 # Niflheim
 PC平台游戏程序
 ## TODO
+#### 2021.05.31
+* - [x] 新增NEKOPACK项目，基于ヒマワリと恋の記憶，已完成解包、封包、增量补丁封包功能
+* 完成NEKOPACK项目文本与图片处理
+#### 2021.05.28
+* - [x] RioShiina增加ver2.50支持（针对MangaGamer版Sorcery Jokers）
 #### 2020.07.15
 * - [x] StudioSeldomAdventureSystem项目（sec5）完成，修复若干bug，导入导出文本程序不通用，特别注意：CODE文件中存在着海量的硬编码地址，导入新文本时切记也要修改这些地址
 #### 2020.06.24
