@@ -31,7 +31,6 @@ int main(int argc, char* argv[])
 
 		cout << "\tMake a NEKOPACK dat:" << endl;
 		cout << "\t\texe -m folder" << endl;
-		system("pause");
 	}
 	else
 	{
@@ -129,7 +128,7 @@ int main(int argc, char* argv[])
 		}
 		else
 			cout << "unknow argument!" << endl;
-		system("pause");
-		return 0;
 	}
+	system("pause");
+	return 0;
 }

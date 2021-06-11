@@ -39,7 +39,7 @@ def dump():
 		for row in src.readlines():
 			row = row.rstrip('\r\n')
 			if len(row) != 0:
-				if len(row.replace('\t','').replace(' ','')) != 0 and row.replace('\t','').replace(' ','')[0] not in ['@','\t',';','.','?']:
+				if len(row.replace('\t','').replace(' ','')) != 0 and row.replace('\t','').replace(' ','')[0] not in ['@','\t',';','.','?','#']:
 					if row[0] == ':':
 						str_list.append(row.split(':')[1])
 					else:
@@ -76,7 +76,7 @@ def pack():
 			i = 0
 			for row in src.readlines():
 				if len(row.rstrip('\r\n')) != 0:
-					if len(row.replace('\t','').replace(' ','').rstrip('\r\n')) != 0 and row.replace('\t','').replace(' ','')[0] not in ['@','\t',';','.','?']:
+					if len(row.replace('\t','').replace(' ','').rstrip('\r\n')) != 0 and row.replace('\t','').replace(' ','')[0] not in ['@','\t',';','.','?','#']:
 						if row[0] == ':':
 							temp = row.split(':')
 							temp[1] = str_list[i].replace('・','·').replace('♪','～')
