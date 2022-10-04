@@ -22,7 +22,7 @@ struct ps3_header
 {
 	unit8 magic[4];//PS2A
 	unit32 header_length;// 0x30
-	unit32 unknown0;// 0x205b8
+	unit32 unknown0;//各有不同，不明意义
 	unit32 key;
 	unit32 unknown1_count;// 每项4字节
 	unit32 unknown2_length;//代码段
