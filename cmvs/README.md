@@ -7,8 +7,9 @@ ps3_decoder:参考crass源码
 
 ## [Note]
 #### [文本]
-先ps3_decoder.exe解密后cmvs_textdump.py导出，导入直接用cmvs_textimport.py，
-~~因为Longinus1.4的cmvs文本hook点是解压后的，所以文本方面就没有再压缩，但是如果想要改的是data\pack\start.ps3，则需要单独再使用ps3_encoder.exe压缩回去。~~最后ps3_encoder.exe压缩回去，以防万一以后可能还要祭出Longinus1.4，就不把ps3_encoder.exe的功能集成到cmvs_textimport.py了。
+先ps3_decoder.exe解密后cmvs_textdump.py导出，导入直接用cmvs_textimport.py，最后ps3_encoder.exe压缩回去，以防万一以后可能还要祭出Longinus1.4，就不把ps3_encoder.exe的功能集成到cmvs_textimport.py了。
+
+~~因为Longinus1.4的cmvs文本hook点是解压后的，所以文本方面就没有再压缩，但是如果想要改的是data\pack\start.ps3，则需要单独再使用ps3_encoder.exe压缩回去。~~
 #### [图片]
 多数为pb3文件，有部分分支为类jpeg算法压缩，所以是有损压缩，虽然转换可以强制锁定到某些非类jpeg的算法分支，但是写伪压缩没啥必要，因为：
 ```
