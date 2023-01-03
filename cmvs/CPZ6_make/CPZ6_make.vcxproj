@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{bf384815-aa48-43d5-9036-c70f089c0d40}</ProjectGuid>
-    <RootNamespace>CPZ6pack</RootNamespace>
+    <ProjectGuid>{f1958316-90a3-4842-824d-b9f16eba2186}</ProjectGuid>
+    <RootNamespace>CPZ6make</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -144,7 +144,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="cmvs_md5.c" />
-    <ClCompile Include="CPZ6_pack.c" />
+    <ClCompile Include="CPZ6_make.c" />
     <ClCompile Include="MD5.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
