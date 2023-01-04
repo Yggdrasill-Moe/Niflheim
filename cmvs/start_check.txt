@@ -1,0 +1,26 @@
+﻿0x00			0F 02 30 04 00 02 00 01 40 00 00 00 0F 02 30 04 00 02 00 01 00 00 00 00 0F 02 30 04 94 20 4D 23
+data\music\		0F 02 30 04 00 02 00 01 00 00 00 00 0F 02 30 04 13 20
+data\video\		0F 02 30 04 15 20
+save\			0F 02 30 04 16 20
+data\pack\update.cpz	0F 02 30 04 00 02 00 01 00 00 00 00 0F 02 30 04 10 20
+data\pack\script.cpz	0F 02 30 04 00 02 00 01 01 00 00 00 0F 02 30 04 10 20
+data\pack\se.cpz	0F 02 30 04 00 02 00 01 00 00 00 00 0F 02 30 04 12 20
+data\pack\voice2.cpz	0F 02 30 04 00 02 00 01 00 00 00 00 0F 02 30 04 14 20
+data\pack\voice.cpz	0F 02 30 04 00 02 00 01 01 00 00 00 0F 02 30 04 14 20
+data\pack\update.cpz	0F 02 30 04 00 02 00 01 00 00 00 00 0F 02 30 04 11 20
+data\pack\chip.cpz	0F 02 30 04 00 02 00 01 01 00 00 00 0F 02 30 14 11 20
+data\pack\bg.cpz	0F 02 30 04 00 02 00 01 02 00 00 00 0F 02 30 04 11 20
+data\pack\event.cpz	0F 02 30 04 00 02 00 01 03 00 00 00 0F 02 30 04 11 20
+data\pack\stand.cpz	0F 02 30 04 00 02 00 01 04 00 00 00 0F 02 30 04 11 20
+data\pack\up.cpz	0F 02 30 04 00 02 00 01 05 00 00 00 0F 02 30 04 11 20
+data\pack\balloon.cpz	0F 02 30 04 00 02 00 01 06 00 00 00 0F 02 30 04 11 20
+data\pack\ps.cpz	0F 02 30 04 00 02 00 01 00 00 00 00 0F 02 30 04 19 20
+data\pack\video.cpz	0F 02 30 04 00 02 00 01 00 00 00 00 0F 02 30 04 1A 20|0x29C
+00 02 00 01 0A 00 00 00 0F 02 30 04 B3 22 00 02 00 01 00 00 00 00 0F 02 30 04 B4 22
+data\icon\01.cur	0F 02 30 04 98 20
+data\icon\02.cur	0F 02 30 04 98 20
+data\icon\03.cur	0F 02 30 04 98 20
+data\icon\04.cur	0F 02 30 04 98 20
+data\icon\05.cur	0F 02 30 04 98 20
+data\icon\06.cur	0F 02 30 04 98 20|0x30C
+file path opcode length:0x1A

@@ -53,7 +53,7 @@ int __thiscall sub_42F2C0(void *this, int *a2, char *data, SIZE_T uBytes, int a5
 
 ~~偷了个懒直接用的Longinus1.4，直接可以读png2pb3转换的，其实只是抽出了rgba信息，挂羊头卖狗肉~~
 #### [补丁]
-直接封包，如果制作增量补丁就用CPZ6_make.exe，但是start.ps3也要增加新增量封包的信息。
+直接封包，如果制作增量补丁就用CPZ6_make.exe，但是start.ps3也要增加新增量封包的信息，使用cmvs_start_patch.py。
 
 ~~暂未写完封包程序，只能用Longinus1.4的封包功能~~
 ## [New]

@@ -74,8 +74,16 @@ for f in os.listdir('code'):
 		for k in op_dict:
 			#吔屎啦！！！这个op_dict的又不是从文本块开始算的，是从第一句文本开始，
 			#所以要先减去第一个文本前的数据大小，这个offset_list[0]大部分情况下都为0
-			if op_dict[k] > offset_list[count] - offset_list[0]:
-				op_dict_new[k] = op_dict_new[k] + length
+			#2023.01.04更新：对于start.ps3，反而是从文本块开始算，尴尬了，那就单独处理下，
+			#不过offset_list[0]非0的情况只遇到过intproc.ps3、omake.ps3、start.ps3，只有start.ps3有例外
+			#因为start.ps3的offset_list[0]为1，intproc.ps3、omake.ps3都大于1，所以两个判断方式都行。
+			#if offset_list[0] == 1:
+			if f == 'start.ps3.dec':
+				if op_dict[k] > offset_list[count]:
+					op_dict_new[k] = op_dict_new[k] + length
+			else:
+				if op_dict[k] > offset_list[count] - offset_list[0]:
+					op_dict_new[k] = op_dict_new[k] + length
 		count += 1
 	for k in op_dict_new:
 		dst.seek(k, os.SEEK_SET)
