@@ -57,6 +57,10 @@ int __thiscall sub_42F2C0(void *this, int *a2, char *data, SIZE_T uBytes, int a5
 
 ~~暂未写完封包程序，只能用Longinus1.4的封包功能~~
 ## [New]
+ver 1.2
+
+增加CPZ7封包方面功能，基于【アオイトリ】制作
+
 ver 1.1
 
 增加CPZ6封包方面功能，基于【クロノクロック】制作
