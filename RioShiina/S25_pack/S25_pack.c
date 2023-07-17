@@ -28,19 +28,17 @@ struct header
 struct index
 {
 	char filename[150];
-	unit32 size;
 	unit32 offset;
 	unit32 width;
 	unit32 height;
 	unit32 x;
 	unit32 y;
 	unit32 unk;//0
-}S25_Index[10000];
+}S25_Index[20000];
 
 void ReadIndex(FILE *src, char *fname)
 {
 	unit32 i = 0;
-	int p = -1;
 	fread(S25_header.magic, 1, 4, src);
 	fread(&S25_header.index_num, 1, 4, src);
 	if (strncmp(S25_header.magic, "S25\0", 4) != 0)
@@ -49,41 +47,33 @@ void ReadIndex(FILE *src, char *fname)
 		system("pause");
 		exit(0);
 	}
+	printf("%s filenum:%d\n", fname, S25_header.index_num);
 	for (i = 0; i < S25_header.index_num; i++)
 	{
-		sprintf(S25_Index[i].filename, "%s_%04d.png", fname, i);
-		fread(&S25_Index[i].offset, 4, 1, src);
-		if (S25_Index[i].offset == 0)
-			S25_Index[i].size = 0;
+		if (strrchr(fname, '\\') == NULL)
+			sprintf(S25_Index[i].filename, "%s_%04d.png", fname, i);
 		else
+			sprintf(S25_Index[i].filename, "%s_%04d.png", strrchr(fname, '\\') + 1, i);
+		fread(&S25_Index[i].offset, 4, 1, src);
+		fseek(src, S25_Index[i].offset, SEEK_SET);
+		fread(&S25_Index[i].width, 4, 1, src);
+		fread(&S25_Index[i].height, 4, 1, src);
+		fread(&S25_Index[i].x, 4, 1, src);
+		fread(&S25_Index[i].y, 4, 1, src);
+		fread(&S25_Index[i].unk, 4, 1, src);
+		fseek(src, i * 4 + 4 + 8, SEEK_SET);
+		if (S25_Index[i].height == 0 || S25_Index[i].width == 0)
 		{
-			fseek(src, S25_Index[i].offset, SEEK_SET);
-			fread(&S25_Index[i].width, 4, 1, src);
-			fread(&S25_Index[i].height, 4, 1, src);
-			fread(&S25_Index[i].x, 4, 1, src);
-			fread(&S25_Index[i].y, 4, 1, src);
-			fread(&S25_Index[i].unk, 4, 1, src);
-			fseek(src, i * 4 + 4 + 8, SEEK_SET);
-			if (S25_Index[i].height == 0 || S25_Index[i].width == 0)
-			{
-				printf("宽或高为0！height:%d width:%d\n", S25_Index[i].height, S25_Index[i].width);
-				system("pause");
-			}
-			if (S25_Index[i].unk != 0)
-			{
-				printf("unk字段不等于0！unk:0%X\n", S25_Index[i].unk);
-				system("pause");
-			}
-			if (p != -1)
-				S25_Index[p].size = S25_Index[i].offset - S25_Index[p].offset;
-			p = i;
-			FileNum++;
+			printf("宽或高为0！num:%d height:%d width:%d\n", i, S25_Index[i].height, S25_Index[i].width);
+			system("pause");
 		}
-	}
-	if (p != -1)
-	{
-		fseek(src, 0, SEEK_END);
-		S25_Index[p].size = ftell(src) - S25_Index[p].offset;
+		if (S25_Index[i].unk != 0)
+		{
+			printf("unk字段不等于0！num:%d unk:0%X\n", i, S25_Index[i].unk);
+			system("pause");
+		}
+		if (S25_Index[i].offset != 0 && S25_Index[i].width != 0 && S25_Index[i].height != 0)
+			FileNum++;
 	}
 }
 
@@ -167,47 +157,50 @@ void Pack(char *fname)
 	fseek(dst, 8 + S25_header.index_num * 4, SEEK_SET);
 	for (i = 0; i < S25_header.index_num; i++)
 	{
-		if (S25_Index[i].size != 0)
+		if (S25_Index[i].offset != 0)
 		{
-			printf("name:%s offset:0x%X size:0x%X width:%d height:%d x:%d y:%d\n", S25_Index[i].filename, S25_Index[i].offset, S25_Index[i].size, S25_Index[i].width, S25_Index[i].height, S25_Index[i].x, S25_Index[i].y);
 			S25_Index[i].offset = ftell(dst);
-			src = fopen(S25_Index[i].filename, "rb");
-			adata = ReadPng(src);
+			printf("name:%s offset:0x%X width:%d height:%d x:%d y:%d\n", S25_Index[i].filename, S25_Index[i].offset, S25_Index[i].width, S25_Index[i].height, S25_Index[i].x, S25_Index[i].y);
 			fwrite(&S25_Index[i].width, 4, 1, dst);
 			fwrite(&S25_Index[i].height, 4, 1, dst);
 			fwrite(&S25_Index[i].x, 4, 1, dst);
 			fwrite(&S25_Index[i].y, 4, 1, dst);
 			fwrite(&S25_Index[i].unk, 4, 1, dst);
-			fseek(dst, S25_Index[i].height * 4, SEEK_CUR);
-			for (k = 0; k < S25_Index[i].height; k++)
+			if (S25_Index[i].width != 0 && S25_Index[i].height != 0)
 			{
-				udata = malloc(S25_Index[i].width * 4);
-				memcpy(udata, adata + S25_Index[i].width * 4 * k, S25_Index[i].width * 4);
-				cdata = malloc(S25_Index[i].width * 6);
-				if (S25_Index[i].width * 6 > 0xFFFF)
+				src = fopen(S25_Index[i].filename, "rb");
+				adata = ReadPng(src);
+				fseek(dst, S25_Index[i].height * 4, SEEK_CUR);
+				for (k = 0; k < S25_Index[i].height; k++)
 				{
-					printf("图片宽度超过每行上限%d!\n", 0xFFFF / 6);
-					system("pause");
-					exit(0);
+					udata = malloc(S25_Index[i].width * 4);
+					memcpy(udata, adata + S25_Index[i].width * 4 * k, S25_Index[i].width * 4);
+					cdata = malloc(S25_Index[i].width * 6);
+					if (S25_Index[i].width * 6 > 0xFFFF)
+					{
+						printf("图片宽度超过每行上限%d!\n", 0xFFFF / 6);
+						system("pause");
+						exit(0);
+					}
+					line_size = S25_Index[i].width * 6;
+					for (l = 0; l < S25_Index[i].width; l++)
+					{
+						memcpy(cdata + l * 6, &flag, 2);
+						memcpy(cdata + l * 6 + 2, udata + l * 4, 4);
+					}
+					free(udata);
+					savepos = ftell(dst);
+					fseek(dst, S25_Index[i].offset + 0x14, SEEK_SET);
+					fseek(dst, k * 4, SEEK_CUR);
+					fwrite(&savepos, 4, 1, dst);
+					fseek(dst, savepos, SEEK_SET);
+					fwrite(&line_size, 2, 1, dst);
+					fwrite(cdata, S25_Index[i].width * 6, 1, dst);
+					free(cdata);
 				}
-				line_size = S25_Index[i].width * 6;
-				for (l = 0; l < S25_Index[i].width; l++)
-				{
-					memcpy(cdata + l * 6, &flag, 2);
-					memcpy(cdata + l * 6 + 2, udata + l * 4, 4);
-				}
-				free(udata);
-				savepos = ftell(dst);
-				fseek(dst, S25_Index[i].offset + 0x14, SEEK_SET);
-				fseek(dst, k * 4, SEEK_CUR);
-				fwrite(&savepos, 4, 1, dst);
-				fseek(dst, savepos, SEEK_SET);
-				fwrite(&line_size, 2, 1, dst);
-				fwrite(cdata, S25_Index[i].width * 6, 1, dst);
-				free(cdata);
+				free(adata);
+				fclose(src);
 			}
-			free(adata);
-			fclose(src);
 		}
 	}
 	fseek(dst, 8, SEEK_SET);
