@@ -22,7 +22,7 @@ typedef unsigned int   unit32;
 
 struct Header
 {
-	unit8 magic[4];//GYU\x1A
+	unit32 magic;//GYU\x1A
 	unit16 flag;
 	unit16 mode;
 	unit32 key;
@@ -71,23 +71,26 @@ void WritePng(FILE *pngfile, unit32 width, unit32 height, unit32 bpp, unit8* dat
 void Gyu_WriteFile(char *fname)
 {
 	FILE *src = fopen(fname, "rb");
-	unit32 i = 0, k = 0, j = 0;
+	unit32 i = 0, j = 0;
 	unit8 *pal_data = NULL, *alphasrc_data = NULL;
 	fread(&gyu_header, 1, sizeof(gyu_header), src);
-	printf("name:%s flag:0x%X mode:0x%X key:0x%X bpp:%d width:%d height:%d data_size:0x%X alpha_size:0x%X pal_num:%d\n", fname, gyu_header.flag, gyu_header.mode, gyu_header.key, gyu_header.bpp, (gyu_header.width + 3)&~3, gyu_header.height, gyu_header.data_size, gyu_header.alpha_size, gyu_header.pal_num);
+	if (gyu_header.magic != 0x1A555947)
+	{
+		printf("文件头不是GYU\\x1A！\n");
+		system("pause");
+		exit(0);
+	}
+	printf("name:%s flag:0x%X mode:0x%X key:0x%X bpp:%d width:%d height:%d data_size:0x%X alpha_size:0x%X pal_num:%d\n", fname, gyu_header.flag, gyu_header.mode, gyu_header.key, gyu_header.bpp, gyu_header.width, gyu_header.height, gyu_header.data_size, gyu_header.alpha_size, gyu_header.pal_num);
+	//如果是8位索引图
 	if (gyu_header.pal_num != 0)
 	{
 		pal_data = malloc(gyu_header.pal_num * 4);
 		fread(pal_data, 1, gyu_header.pal_num * 4, src);
 	}
-	unit8 *src_data = malloc(gyu_header.data_size);
+	//位图数据
+	unit8* src_data = malloc(gyu_header.data_size);
 	fread(src_data, 1, gyu_header.data_size, src);
-	if (gyu_header.flag & 1)
-	{
-		alphasrc_data = malloc(gyu_header.alpha_size);
-		fread(alphasrc_data, 1, gyu_header.alpha_size, src);
-	}
-	unit8 *dst_data = malloc(gyu_header.height * ((gyu_header.width + 3)&~3) * gyu_header.bpp / 8);//发现有些图宽度非header定义的那样，需要被4整除
+	unit8* dst_data = malloc(gyu_header.height * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3));//每行数据大小需要4字节对齐
 	if (gyu_header.key != 0xFFFFFFFF)
 	{
 		sgenrand(gyu_header.key);
@@ -103,14 +106,25 @@ void Gyu_WriteFile(char *fname)
 		}
 	}
 	if (gyu_header.mode != 0x800)
-		lzss_decompress(dst_data, gyu_header.height * ((gyu_header.width + 3)&~3) * gyu_header.bpp / 8, src_data, gyu_header.data_size);
+		lzss_decompress(dst_data, gyu_header.height * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3), src_data, gyu_header.data_size);
 	else
 		gyu_new_uncompress(dst_data, src_data);
 	free(src_data);
-	unit8 *alphadst_data = malloc(gyu_header.height * ((gyu_header.width + 3)&~3));
-	if (gyu_header.alpha_size != gyu_header.height * ((gyu_header.width + 3)&~3) && gyu_header.alpha_size != 0)//理由同上
+	//alpha数据
+	if (gyu_header.flag & 1)
 	{
-		lzss_decompress(alphadst_data, gyu_header.height * ((gyu_header.width + 3)&~3), alphasrc_data, gyu_header.alpha_size);
+		alphasrc_data = malloc(gyu_header.alpha_size);
+		fread(alphasrc_data, 1, gyu_header.alpha_size, src);
+	}
+	unit8* alphadst_data = malloc(gyu_header.height * ((gyu_header.width + 3) & ~3));//宽度4字节对齐
+	if (gyu_header.alpha_size != gyu_header.height * ((gyu_header.width + 3) & ~3) && gyu_header.alpha_size != 0)
+	{
+		lzss_decompress(alphadst_data, gyu_header.height * ((gyu_header.width + 3) & ~3), alphasrc_data, gyu_header.alpha_size);
+		free(alphasrc_data);
+	}
+	else
+	{
+		memcpy(alphadst_data, alphasrc_data, gyu_header.alpha_size);
 		free(alphasrc_data);
 	}
 	if (!(gyu_header.flag & 2))
@@ -118,62 +132,134 @@ void Gyu_WriteFile(char *fname)
 			alphadst_data[i] = alphadst_data[i] >= 0x10 ? 0xFF : alphadst_data[i] * 0x10;
 	fclose(src);
 	sprintf(fname, "%s.png", fname);
+	//从png转成gyu的8位索引图不好搞，所以不如8位索引图全部当成32位图处理
 	if (gyu_header.bpp == 8)
 	{
-		unit8 *png_data_down = malloc(gyu_header.height * ((gyu_header.width + 3)&~3) * 4);
-		unit8 *png_data_up = malloc(gyu_header.height * ((gyu_header.width + 3)&~3) * 4);
-		for (i = 0; i < gyu_header.height * ((gyu_header.width + 3)&~3); i++)
+		unit8 *png_data_down = malloc(gyu_header.height * gyu_header.width * 4);
+		unit8 *png_data_up = malloc(gyu_header.height * gyu_header.width * 4);
+		memset(png_data_down, 0, gyu_header.height * gyu_header.width * 4);
+		memset(png_data_up, 0, gyu_header.height * gyu_header.width * 4);
+		for (j = 0; j < gyu_header.height; j++)
 		{
-			png_data_down[j * 4] = pal_data[dst_data[k] * 4 + 2];
-			png_data_down[j * 4 + 1] = pal_data[dst_data[k] * 4 + 1];
-			png_data_down[j * 4 + 2] = pal_data[dst_data[k] * 4];
-			png_data_down[j++ * 4 + 3] = alphadst_data[k++];
+			for (i = 0; i < gyu_header.width; i++)
+			{
+				png_data_down[j * gyu_header.width * 4 + i * 4] = pal_data[dst_data[j * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3) + i] * 4 + 2];
+				png_data_down[j * gyu_header.width * 4 + i * 4 + 1] = pal_data[dst_data[j * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3) + i] * 4 + 1];
+				png_data_down[j * gyu_header.width * 4 + i * 4 + 2] = pal_data[dst_data[j * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3) + i] * 4];
+				png_data_down[j * gyu_header.width * 4 + i * 4 + 3] = alphadst_data[j * ((gyu_header.width + 3) & ~3) + i];
+			}
 		}
 		free(pal_data);
-		for (i = 0, k = gyu_header.height - 1; i < gyu_header.height; i++, k--)
-			memcpy(&png_data_up[k * ((gyu_header.width + 3)&~3) * 4], &png_data_down[i * ((gyu_header.width + 3)&~3) * 4], ((gyu_header.width + 3)&~3) * 4);
+		for (i = 0, j = gyu_header.height - 1; i < gyu_header.height; i++, j--)
+			memcpy(&png_data_up[j * gyu_header.width * 4], &png_data_down[i * gyu_header.width * 4], gyu_header.width * 4);
 		free(png_data_down);
 		FILE *dst = fopen(fname, "wb");
-		WritePng(dst, (gyu_header.width + 3)&~3, gyu_header.height, gyu_header.bpp, png_data_up);
+		WritePng(dst, gyu_header.width, gyu_header.height, gyu_header.bpp, png_data_up);
 		free(png_data_up);
 		fclose(dst);
 	}
 	else if (gyu_header.bpp == 24 && gyu_header.alpha_size != 0)
 	{
-		unit8 *png_data_down = malloc(gyu_header.height * ((gyu_header.width + 3)&~3) * 4);
-		unit8 *png_data_up = malloc(gyu_header.height * ((gyu_header.width + 3)&~3) * 4);
-		for (i = 0; i < gyu_header.height * ((gyu_header.width + 3)&~3); i++)
+		unit8 *png_data_down = malloc(gyu_header.height * gyu_header.width * 4);
+		unit8 *png_data_up = malloc(gyu_header.height * gyu_header.width * 4);
+		memset(png_data_down, 0, gyu_header.height * gyu_header.width * 4);
+		memset(png_data_up, 0, gyu_header.height * gyu_header.width * 4);
+		for (j = 0; j < gyu_header.height; j++)
 		{
-			png_data_down[j * 4] = dst_data[k * 3 + 2];
-			png_data_down[j * 4 + 1] = dst_data[k * 3 + 1];
-			png_data_down[j * 4 + 2] = dst_data[k * 3];
-			png_data_down[j++ * 4 + 3] = alphadst_data[k++];
+			for (i = 0; i < gyu_header.width; i++)
+			{
+				png_data_down[j * gyu_header.width * 4 + i * 4] = dst_data[j * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3) + i * 3 + 2];
+				png_data_down[j * gyu_header.width * 4 + i * 4 + 1] = dst_data[j * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3) + i * 3 + 1];
+				png_data_down[j * gyu_header.width * 4 + i * 4 + 2] = dst_data[j * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3) + i * 3];
+				png_data_down[j * gyu_header.width * 4 + i * 4 + 3] = alphadst_data[j * ((gyu_header.width + 3) & ~3) + i];
+			}
 		}
-		for (i = 0, k = gyu_header.height - 1; i < gyu_header.height; i++, k--)
-			memcpy(&png_data_up[k * ((gyu_header.width + 3)&~3) * 4], &png_data_down[i * ((gyu_header.width + 3)&~3) * 4], ((gyu_header.width + 3)&~3) * 4);
+		for (i = 0, j = gyu_header.height - 1; i < gyu_header.height; i++, j--)
+			memcpy(&png_data_up[j * gyu_header.width * 4], &png_data_down[i * gyu_header.width * 4], gyu_header.width * 4);
 		free(png_data_down);
 		FILE *dst = fopen(fname, "wb");
-		WritePng(dst, (gyu_header.width + 3)&~3, gyu_header.height, 32, png_data_up);
+		WritePng(dst, gyu_header.width, gyu_header.height, 32, png_data_up);
+		free(png_data_up);
+		fclose(dst);
+	}
+	else if (gyu_header.bpp == 32 && gyu_header.alpha_size != 0)//没见过，预防性分支
+	{
+		unit8* png_data_down = malloc(gyu_header.height * gyu_header.width * 4);
+		unit8* png_data_up = malloc(gyu_header.height * gyu_header.width * 4);
+		memset(png_data_down, 0, gyu_header.height * gyu_header.width * 4);
+		memset(png_data_up, 0, gyu_header.height * gyu_header.width * 4);
+		for (j = 0; j < gyu_header.height; j++)
+		{
+			//应该是BGRA而不是ABGR？
+			for (i = 0; i < gyu_header.width; i++)
+			{
+				png_data_down[j * gyu_header.width * 4 + i * 4] = dst_data[j * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3) + i * 4 + 2];
+				png_data_down[j * gyu_header.width * 4 + i * 4 + 1] = dst_data[j * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3) + i * 4 + 1];
+				png_data_down[j * gyu_header.width * 4 + i * 4 + 2] = dst_data[j * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3) + i * 4];
+				png_data_down[j * gyu_header.width * 4 + i * 4 + 3] = alphadst_data[j * ((gyu_header.width + 3) & ~3) + i];
+			}
+		}
+		for (i = 0, j = gyu_header.height - 1; i < gyu_header.height; i++, j--)
+			memcpy(&png_data_up[j * gyu_header.width * 4], &png_data_down[i * gyu_header.width * 4], gyu_header.width * 4);
+		free(png_data_down);
+		FILE* dst = fopen(fname, "wb");
+		WritePng(dst, gyu_header.width, gyu_header.height, 32, png_data_up);
+		free(png_data_up);
+		fclose(dst);
+	}
+	else if (gyu_header.bpp == 32)//没见过，预防性分支
+	{
+		unit8* png_data_down = malloc(gyu_header.height * gyu_header.width * 4);
+		unit8* png_data_up = malloc(gyu_header.height * gyu_header.width * 4);
+		memset(png_data_down, 0, gyu_header.height * gyu_header.width * 4);
+		memset(png_data_up, 0, gyu_header.height * gyu_header.width * 4);
+		for (j = 0; j < gyu_header.height; j++)
+		{
+			//应该是BGRA而不是ABGR？
+			for (i = 0; i < gyu_header.width; i++)
+			{
+				png_data_down[j * gyu_header.width * 4 + i * 4] = dst_data[j * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3) + i * 4 + 2];
+				png_data_down[j * gyu_header.width * 4 + i * 4 + 1] = dst_data[j * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3) + i * 4 + 1];
+				png_data_down[j * gyu_header.width * 4 + i * 4 + 2] = dst_data[j * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3) + i * 4];
+				png_data_down[j * gyu_header.width * 4 + i * 4 + 3] = dst_data[j * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3) + i * 4 + 3];
+			}
+		}
+		for (i = 0, j = gyu_header.height - 1; i < gyu_header.height; i++, j--)
+			memcpy(&png_data_up[j * gyu_header.width * 4], &png_data_down[i * gyu_header.width * 4], gyu_header.width * 4);
+		free(png_data_down);
+		FILE* dst = fopen(fname, "wb");
+		WritePng(dst, gyu_header.width, gyu_header.height, 32, png_data_up);
 		free(png_data_up);
 		fclose(dst);
 	}
 	else if (gyu_header.bpp == 24)
 	{
-		unit8 *png_data_down = malloc(gyu_header.height * ((gyu_header.width + 3)&~3) * 3);
-		unit8 *png_data_up = malloc(gyu_header.height * ((gyu_header.width + 3)&~3) * 3);
-		for (i = 0; i < gyu_header.height * ((gyu_header.width + 3)&~3); i++)
+		unit8 *png_data_down = malloc(gyu_header.height * gyu_header.width * 3);
+		unit8 *png_data_up = malloc(gyu_header.height * gyu_header.width * 3);
+		memset(png_data_down, 0, gyu_header.height * gyu_header.width * 3);
+		memset(png_data_up, 0, gyu_header.height * gyu_header.width * 3);
+		for (j = 0; j < gyu_header.height; j++)
 		{
-			png_data_down[j * 3] = dst_data[k * 3 + 2];
-			png_data_down[j * 3 + 1] = dst_data[k * 3 + 1];
-			png_data_down[j++ * 3 + 2] = dst_data[k++ * 3];
+			for (i = 0; i < gyu_header.width; i++)
+			{
+				png_data_down[j * gyu_header.width * 3 + i * 3] = dst_data[j * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3) + i * 3 + 2];
+				png_data_down[j * gyu_header.width * 3 + i * 3 + 1] = dst_data[j * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3) + i * 3 + 1];
+				png_data_down[j * gyu_header.width * 3 + i * 3 + 2] = dst_data[j * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3) + i * 3];
+			}
 		}
-		for (i = 0, k = gyu_header.height - 1; i < gyu_header.height; i++, k--)
-			memcpy(&png_data_up[k * ((gyu_header.width + 3)&~3) * 3], &png_data_down[i * ((gyu_header.width + 3)&~3) * 3], ((gyu_header.width + 3)&~3) * 3);
+		for (i = 0, j = gyu_header.height - 1; i < gyu_header.height; i++, j--)
+			memcpy(&png_data_up[j * gyu_header.width * 3], &png_data_down[i * gyu_header.width * 3], gyu_header.width * 3);
 		free(png_data_down);
 		FILE *dst = fopen(fname, "wb");
-		WritePng(dst, (gyu_header.width + 3)&~3, gyu_header.height, gyu_header.bpp, png_data_up);
+		WritePng(dst, gyu_header.width, gyu_header.height, gyu_header.bpp, png_data_up);
 		free(png_data_up);
 		fclose(dst);
+	}
+	else
+	{
+		printf("未知的gyu类型！\n");
+		system("pause");
+		exit(0);
 	}
 	free(dst_data);
 	free(alphadst_data);

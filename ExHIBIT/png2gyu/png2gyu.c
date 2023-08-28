@@ -20,7 +20,7 @@ typedef unsigned int   unit32;
 
 struct Header
 {
-	unit8 magic[4];//GYU\x1A
+	unit32 magic;//GYU\x1A
 	unit16 flag;
 	unit16 mode;
 	unit32 key;
@@ -38,6 +38,7 @@ unit8* ReadPng(FILE *OpenPng, unit32 width, unit32 height, unit32 mode)
 	png_infop info_ptr, end_ptr;
 	png_bytep *rows;
 	unit32 i = 0, bpp = 0, format = 0, llen;
+	unit32 pwidth = 0, pheight = 0;
 	unit8 *TexData;
 	png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if (png_ptr == NULL)
@@ -61,7 +62,13 @@ unit8* ReadPng(FILE *OpenPng, unit32 width, unit32 height, unit32 mode)
 	}
 	png_init_io(png_ptr, OpenPng);
 	png_read_info(png_ptr, info_ptr);
-	png_get_IHDR(png_ptr, info_ptr, (png_uint_32*)&width, (png_uint_32*)&height, &bpp, &format, NULL, NULL, NULL);
+	png_get_IHDR(png_ptr, info_ptr, (png_uint_32*)&pwidth, (png_uint_32*)&pheight, &bpp, &format, NULL, NULL, NULL);
+	if (width != pwidth || height != pheight)
+	{
+		printf("gyu与png的宽高不一致！\ngyu:%d * %d\npng:%d * %d\n", width, height, pwidth, pheight);
+		system("pause");
+		exit(0);
+	}
 	rows = (png_bytep*)malloc(height * sizeof(char*));
 	if (mode == 32)
 		TexData = malloc(height * width * 4);
@@ -80,41 +87,58 @@ unit8* ReadPng(FILE *OpenPng, unit32 width, unit32 height, unit32 mode)
 void Gyu_WriteFile(char *fname)
 {
 	FILE *src = fopen(fname, "rb");
-	unit32 i = 0, k = 0, j = 0;
+	unit32 i = 0, j = 0;
 	unit8 dstname[260], *png_data_up = NULL, *png_data_down = NULL;
 	fread(&gyu_header, 1, sizeof(gyu_header), src);
 	fclose(src);
+	if (gyu_header.magic != 0x1A555947)
+	{
+		printf("文件头不是GYU\\x1A！\n");
+		system("pause");
+		exit(0);
+	}
+	if (gyu_header.bpp == 8)
+		gyu_header.bpp = 24;
+	else if (gyu_header.bpp == 32)
+	{
+		gyu_header.bpp = 24;
+		gyu_header.alpha_size = 1;//防止gyu_header.bpp == 32 && gyu_header.alpha_size == 0的情况
+	}
 	sprintf(dstname, "%s_new", fname);
 	sprintf(fname, "%s.png", fname);
 	src = fopen(fname, "rb");
 	if (gyu_header.bpp == 24 && gyu_header.alpha_size == 0)
 	{
-		png_data_up = ReadPng(src, (gyu_header.width + 3)&~3, gyu_header.height, 24);
-		png_data_down = malloc(((gyu_header.width + 3)&~3) * gyu_header.height * 3);
-		for (i = 0, k = gyu_header.height - 1; i < gyu_header.height; i++, k--)
-			memcpy(&png_data_down[k * ((gyu_header.width + 3)&~3) * 3], &png_data_up[i * ((gyu_header.width + 3)&~3) * 3], ((gyu_header.width + 3)&~3) * 3);
+		png_data_up = ReadPng(src, gyu_header.width, gyu_header.height, 24);
+		png_data_down = malloc(gyu_header.width * gyu_header.height * 3);
+		for (i = 0, j = gyu_header.height - 1; i < gyu_header.height; i++, j--)
+			memcpy(&png_data_down[j * gyu_header.width * 3], &png_data_up[i * gyu_header.width * 3], gyu_header.width * 3);
 	}
 	else
 	{
-		png_data_up = ReadPng(src, (gyu_header.width + 3)&~3, gyu_header.height, 32);
-		png_data_down = malloc(((gyu_header.width + 3)&~3) * gyu_header.height * 4);
-		for (i = 0, k = gyu_header.height - 1; i < gyu_header.height; i++, k--)
-			memcpy(&png_data_down[k * ((gyu_header.width + 3)&~3) * 4], &png_data_up[i * ((gyu_header.width + 3)&~3) * 4], ((gyu_header.width + 3)&~3) * 4);
+		png_data_up = ReadPng(src, gyu_header.width, gyu_header.height, 32);
+		png_data_down = malloc(gyu_header.width * gyu_header.height * 4);
+		for (i = 0, j = gyu_header.height - 1; i < gyu_header.height; i++, j--)
+			memcpy(&png_data_down[j * gyu_header.width * 4], &png_data_up[i * gyu_header.width * 4], gyu_header.width * 4);
 	}
 	free(png_data_up);
 	fclose(src);
-	unit8 *src_data = malloc(((gyu_header.width + 3)&~3)*gyu_header.height * 3);
+	unit8 *src_data = malloc(gyu_header.height * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3));//每行数据大小需要4字节对齐
+	memset(src_data, 0, gyu_header.height * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3));
 	if (gyu_header.bpp == 24 && gyu_header.alpha_size == 0)
 	{
-		for (i = 0; i < gyu_header.height*((gyu_header.width + 3)&~3); i++)
+		for (j = 0; j < gyu_header.height; j++)
 		{
-			src_data[i * 3] = png_data_down[i * 3 + 2];
-			src_data[i * 3 + 1] = png_data_down[i * 3 + 1];
-			src_data[i * 3 + 2] = png_data_down[i * 3];
+			for (i = 0; i < gyu_header.width; i++)
+			{
+				src_data[j * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3) + i * 3 + 2] = png_data_down[j * gyu_header.width * 3 + i * 3];
+				src_data[j * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3) + i * 3 + 1] = png_data_down[j * gyu_header.width * 3 + i * 3 + 1];
+				src_data[j * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3) + i * 3] = png_data_down[j * gyu_header.width * 3 + i * 3 + 2];
+			}
 		}
 		free(png_data_down);
 		src = fopen("intmp.bin", "wb");
-		fwrite(src_data, 1, ((gyu_header.width + 3)&~3)*gyu_header.height * 3, src);
+		fwrite(src_data, 1, ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3) * gyu_header.height, src);
 		fclose(src);
 		free(src_data);
 		infile = fopen("intmp.bin", "rb");
@@ -139,16 +163,20 @@ void Gyu_WriteFile(char *fname)
 	}
 	else
 	{
-		unit8 *alphasrc_data = malloc(((gyu_header.width + 3)&~3)*gyu_header.height);
-		for (i = 0; i < gyu_header.height*((gyu_header.width + 3)&~3); i++)
+		unit8* alphasrc_data = malloc(((gyu_header.width + 3) & ~3) * gyu_header.height);
+		memset(alphasrc_data, 0, ((gyu_header.width + 3) & ~3) * gyu_header.height);
+		for (j = 0; j < gyu_header.height; j++)
 		{
-			src_data[i * 3] = png_data_down[i * 4 + 2];
-			src_data[i * 3 + 1] = png_data_down[i * 4 + 1];
-			src_data[i * 3 + 2] = png_data_down[i * 4];
-			alphasrc_data[i] = png_data_down[i * 4 + 3];
+			for (i = 0; i < gyu_header.width; i++)
+			{
+				src_data[j * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3) + i * 3 + 2] = png_data_down[j * gyu_header.width * 4 + i * 4];
+				src_data[j * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3) + i * 3 + 1] = png_data_down[j * gyu_header.width * 4 + i * 4 + 1];
+				src_data[j * ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3) + i * 3] = png_data_down[j * gyu_header.width * 4 + i * 4 + 2];
+				alphasrc_data[j * ((gyu_header.width + 3) & ~3) + i] = png_data_down[j * gyu_header.width * 4 + i * 4 + 3];
+			}
 		}
 		src = fopen("intmp.bin", "wb");
-		fwrite(src_data, 1, ((gyu_header.width + 3)&~3)*gyu_header.height * 3, src);
+		fwrite(src_data, 1, ((gyu_header.width * gyu_header.bpp / 8 + 3) & ~3) * gyu_header.height, src);
 		fclose(src);
 		free(src_data);
 		infile = fopen("intmp.bin", "rb");
@@ -169,7 +197,7 @@ void Gyu_WriteFile(char *fname)
 		gyu_header.pal_num = 0;
 		gyu_header.bpp = 24;
 		src = fopen("intmp.bin", "wb");
-		fwrite(alphasrc_data, 1, ((gyu_header.width + 3)&~3)*gyu_header.height, src);
+		fwrite(alphasrc_data, 1, ((gyu_header.width + 3) & ~3)* gyu_header.height, src);
 		fclose(src);
 		free(alphasrc_data);
 		infile = fopen("intmp.bin", "rb");
@@ -195,7 +223,7 @@ void Gyu_WriteFile(char *fname)
 		free(alphasrc_data);
 		fclose(dst);
 	}
-	printf("name:%s flag:0x%X mode:0x%X key:0x%X bpp:%d width:%d height:%d data_size:0x%X alpha_size:0x%X pal_num:%d\n", fname, gyu_header.flag, gyu_header.mode, gyu_header.key, gyu_header.bpp, (gyu_header.width + 3)&~3, gyu_header.height, gyu_header.data_size, gyu_header.alpha_size, gyu_header.pal_num);
+	printf("name:%s flag:0x%X mode:0x%X key:0x%X bpp:%d width:%d height:%d data_size:0x%X alpha_size:0x%X pal_num:%d\n", fname, gyu_header.flag, gyu_header.mode, gyu_header.key, gyu_header.bpp, gyu_header.width, gyu_header.height, gyu_header.data_size, gyu_header.alpha_size, gyu_header.pal_num);
 }
 
 int main(int argc, char *argv[])
